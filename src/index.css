@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-primary: #1A2FBF;
+  --brand-dark: #0B1470;
+  --brand-light: #CFD6FF;
+  --accent-yellow: #FDB94E;
+  --accent-hover: #F59E0B;
+  --surface-white: #FFFFFF;
+  --surface-warm: #E8E6E1;
+  --arcade-bg: #0A0E1A;
+  --arcade-cyan: #22D3EE;
+  --status-lime: #8CF25A;
+  --text-ink: #0B1B3A;
+}
+
+@layer base {
+  body {
+    font-family: 'Rajdhani', 'Inter', sans-serif;
+    background-color: var(--surface-warm);
+    color: var(--text-ink);
+    overflow-x: hidden;
+  }
+
+  *:focus-visible {
+    outline: 3px solid var(--accent-yellow);
+    outline-offset: 2px;
+  }
+}
+
+/* Fundo claro das referências com linhas horizontais muito sutis */
+.bg-scanlines-light {
+  background-color: #E8E6E1;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.36) 0px,
+    rgba(255, 255, 255, 0.36) 2px,
+    rgba(11, 27, 58, 0.03) 2px,
+    rgba(11, 27, 58, 0.03) 4px
+  );
+}
+
+/* Card branco com textura sutil de scanlines (como no Catálogo de Serviços) */
+.card-scanlines-white {
+  background-color: #FFFFFF;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    #FFFFFF 0px,
+    #FFFFFF 3px,
+    #F5F4F0 3px,
+    #F5F4F0 6px
+  );
+}
+
+/* Fundo azul royal com matriz de pontos (Seção "Quem pode usar nosso espaço?") */
+.bg-royal-dots {
+  background-color: #1A2FBF;
+  background-image: radial-gradient(rgba(207, 214, 255, 0.25) 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+}
+
+/* Fundo azul royal com grade quadriculada (Seção "Sistema de Gerenciamento de Tarefas") */
+.bg-royal-grid {
+  background-color: #1A2FBF;
+  background-image:
+    linear-gradient(to right, rgba(207, 214, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(207, 214, 255, 0.12) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Fundo escuro arcade com grade ciano sutil */
+.bg-arcade-grid {
+  background-color: #0A0E1A;
+  background-image:
+    linear-gradient(to right, rgba(34, 211, 238, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(34, 211, 238, 0.06) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+
+/* Overlay global de CRT quando CRT: ON estiver ativo */
+.crt-active::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background:
+    linear-gradient(
+      rgba(18, 16, 16, 0) 50%,
+      rgba(0, 0, 0, 0.14) 50%
+    ),
+    radial-gradient(
+      circle at center,
+      transparent 68%,
+      rgba(10, 14, 26, 0.28) 100%
+    );
+  background-size: 100% 4px, 100% 100%;
+}
+
+/* Animação em steps() para cursor e elementos 8-bit */
+@keyframes blink-step {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.cursor-pixel-blink {
+  animation: blink-step 1s steps(2, start) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crt-active::after {
+    display: none;
+  }
+  .cursor-pixel-blink {
+    animation: none;
+  }
+}
