@@ -42,7 +42,7 @@ export const MakerLabQuestPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 bg-arcade-grid text-white py-12 px-4 sm:px-6 pb-32">
+    <div className="flex-1 bg-arcade-grid text-white py-12 px-4 sm:px-6 pb-16">
       <div className="max-w-7xl mx-auto space-y-12">
         {/* Hero Arcade MakerLab Quest */}
         <div className="rounded-3xl bg-[#10172A] border-[3px] border-accent shadow-neo-yellow p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">

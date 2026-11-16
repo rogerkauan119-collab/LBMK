@@ -5,7 +5,7 @@ import { MascotRobotPixel } from '../components/ui/PixelArts';
 
 export const NotFoundPage: React.FC = () => {
   return (
-    <div className="flex-1 bg-arcade-grid text-white flex items-center justify-center p-6 pb-32">
+    <div className="flex-1 bg-arcade-grid text-white flex items-center justify-center p-6 pb-16">
       <div className="max-w-xl w-full bg-[#11182C] border-4 border-accent rounded-3xl p-8 sm:p-10 text-center shadow-neo-yellow space-y-6">
         <div className="flex justify-center">
           <MascotRobotPixel className="w-24 h-24" />

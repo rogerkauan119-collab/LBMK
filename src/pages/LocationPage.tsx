@@ -25,7 +25,7 @@ export const LocationPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 bg-scanlines-light pb-32">
+    <div className="flex-1 bg-scanlines-light pb-16">
       <section className="bg-royal-dots text-white py-14 border-b-4 border-accent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <span className="inline-block px-3 py-1 rounded-full bg-white/10 border border-white/25 font-pixel text-[9px] text-accent uppercase">

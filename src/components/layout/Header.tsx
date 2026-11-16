@@ -15,6 +15,7 @@ import {
   Map,
   Trophy,
   Lock,
+  GitBranch,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -60,6 +61,13 @@ const NAV_SHORTCUTS: NavShortcut[] = [
     path: '/quest',
     icon: Trophy,
     requiresInternal: true,
+  },
+  {
+    id: 'fluxograma',
+    label: 'Fluxograma & Estrutura Base',
+    shortLabel: 'Fluxograma',
+    path: '/fluxograma',
+    icon: GitBranch,
   },
 ];
 
@@ -305,3 +313,4 @@ export const Header: React.FC = () => {
     </>
   );
 };
+  

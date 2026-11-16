@@ -15,6 +15,7 @@ import { LocationPage } from './pages/LocationPage';
 import { StudentDashboard } from './pages/StudentDashboard';
 import { MakerLabQuestPage } from './pages/MakerLabQuestPage';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { FlowchartPage } from './pages/FlowchartPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 const AnimatedRoutes: React.FC = () => {
@@ -71,6 +72,7 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/aluno" element={<StudentDashboard />} />
           <Route path="/quest" element={<MakerLabQuestPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/fluxograma" element={<FlowchartPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </motion.main>

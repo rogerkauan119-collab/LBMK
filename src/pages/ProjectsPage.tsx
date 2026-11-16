@@ -64,7 +64,7 @@ export const ProjectsPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 bg-scanlines-light pb-32">
+    <div className="flex-1 bg-scanlines-light pb-16">
       {/* Banner superior */}
       <section className="bg-royal-grid text-white py-14 border-b-4 border-accent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">

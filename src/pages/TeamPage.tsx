@@ -8,7 +8,7 @@ export const TeamPage: React.FC = () => {
   const team = data?.siteContent?.team || [];
 
   return (
-    <div className="flex-1 bg-arcade-bg text-white py-16 px-4 sm:px-6 pb-32">
+    <div className="flex-1 bg-arcade-bg text-white py-16 px-4 sm:px-6 pb-16">
       <div className="max-w-7xl mx-auto space-y-12">
         {/* Cabeçalho fiel à Imagem 5 */}
         <div className="text-center space-y-3">

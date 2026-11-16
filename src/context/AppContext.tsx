@@ -120,8 +120,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [crtEnabled, setCrtEnabled] = useState<boolean>(() => {
-    const saved = localStorage.getItem('labmaker_crt');
-    return saved !== null ? saved === 'true' : true;
+    const saved = localStorage.getItem('labmaker_crt_v2');
+    return saved !== null ? saved === 'true' : false;
   });
 
   const [data, setData] = useState<BootstrapData | null>(null);
@@ -155,7 +155,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [sfxEnabled]);
 
   useEffect(() => {
-    localStorage.setItem('labmaker_crt', String(crtEnabled));
+    localStorage.setItem('labmaker_crt_v2', String(crtEnabled));
   }, [crtEnabled]);
 
   const refreshData = useCallback(async () => {

@@ -30,28 +30,15 @@
   }
 }
 
-/* Fundo claro das referências com linhas horizontais muito sutis */
+/* Fundo claro limpo (cinza-quente com leve gradiente, sem linhas) */
 .bg-scanlines-light {
   background-color: #E8E6E1;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.36) 0px,
-    rgba(255, 255, 255, 0.36) 2px,
-    rgba(11, 27, 58, 0.03) 2px,
-    rgba(11, 27, 58, 0.03) 4px
-  );
+  background-image: linear-gradient(180deg, #ECEAE6 0%, #E8E6E1 100%);
 }
 
-/* Card branco com textura sutil de scanlines (como no Catálogo de Serviços) */
+/* Card branco limpo */
 .card-scanlines-white {
   background-color: #FFFFFF;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    #FFFFFF 0px,
-    #FFFFFF 3px,
-    #F5F4F0 3px,
-    #F5F4F0 6px
-  );
 }
 
 /* Fundo azul royal com matriz de pontos (Seção "Quem pode usar nosso espaço?") */
@@ -86,17 +73,12 @@
   inset: 0;
   pointer-events: none;
   z-index: 9999;
-  background:
-    linear-gradient(
-      rgba(18, 16, 16, 0) 50%,
-      rgba(0, 0, 0, 0.14) 50%
-    ),
-    radial-gradient(
-      circle at center,
-      transparent 68%,
-      rgba(10, 14, 26, 0.28) 100%
-    );
-  background-size: 100% 4px, 100% 100%;
+  /* Efeito "tela de tubo" suave: apenas vinheta nas bordas, sem listras */
+  background: radial-gradient(
+    ellipse at center,
+    transparent 72%,
+    rgba(10, 14, 26, 0.18) 100%
+  );
 }
 
 /* Animação em steps() para cursor e elementos 8-bit */

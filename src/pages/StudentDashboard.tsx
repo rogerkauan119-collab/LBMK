@@ -177,7 +177,7 @@ export const StudentDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 bg-scanlines-light pb-32">
+    <div className="flex-1 bg-scanlines-light pb-16">
       {/* Header da Plataforma dos Alunos */}
       <section className="bg-royal-grid text-white py-10 border-b-4 border-accent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6">

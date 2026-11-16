@@ -84,7 +84,7 @@ export const CheckInLoginPage: React.FC = () => {
   const recentCheckins = (data?.checkins || []).slice(0, 5);
 
   return (
-    <div className="flex-1 bg-scanlines-light py-12 px-4 sm:px-6 pb-32">
+    <div className="flex-1 bg-scanlines-light py-12 px-4 sm:px-6 pb-16">
       <div className="max-w-6xl mx-auto space-y-10">
         {/* Cabeçalho da página */}
         <div className="text-center max-w-2xl mx-auto">

@@ -205,7 +205,7 @@ export const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 bg-scanlines-light pb-32">
+    <div className="flex-1 bg-scanlines-light pb-16">
       {/* Banner Admin */}
       <section className="bg-arcade-bg text-white py-10 border-b-4 border-accent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
