@@ -39,6 +39,13 @@ export interface Booking {
   created_at: string;
 }
 
+export interface ProjectFile {
+  name: string;
+  size: string;
+  type: string;
+  url: string;
+}
+
 export interface ProjectItem {
   id: number;
   title: string;
@@ -47,6 +54,7 @@ export interface ProjectItem {
   description: string;
   status: string;
   image_url: string;
+  files?: ProjectFile[];
   approved: number;
   created_at?: string;
 }

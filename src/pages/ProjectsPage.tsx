@@ -6,10 +6,14 @@ import {
   Layers,
   CheckCircle2,
   Clock,
-  ArrowUpRight,
   PlusCircle,
+  FileText,
+  Download,
+  Image as ImageIcon,
+  Paperclip,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { ProjectFile } from '../types';
 
 export const ProjectsPage: React.FC = () => {
   const { data, user, saveProject, playClick } = useApp();
@@ -24,6 +28,9 @@ export const ProjectsPage: React.FC = () => {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Impressão 3D');
   const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [attachedFiles, setAttachedFiles] = useState<ProjectFile[]>([]);
+  const { pushToast } = useApp();
 
   const projects = (data?.projects || []).filter((p) => p.approved === 1 || user.role === 'ADMIN');
   const tutorials = data?.tutorials || [];
@@ -47,6 +54,37 @@ export const ProjectsPage: React.FC = () => {
     return matchesCat && matchesSearch;
   });
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setImageUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFilesAttach = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (!fileList) return;
+    const next: ProjectFile[] = [];
+    Array.from(fileList).forEach((f) => {
+      const ext = f.name.split('.').pop()?.toUpperCase() || 'ARQ';
+      const sizeMb = f.size > 1024 * 1024
+        ? `${(f.size / (1024 * 1024)).toFixed(1)} MB`
+        : `${Math.max(1, Math.round(f.size / 1024))} KB`;
+      next.push({
+        name: f.name,
+        size: sizeMb,
+        type: ext,
+        url: URL.createObjectURL(f),
+      });
+    });
+    setAttachedFiles((prev) => [...prev, ...next]);
+  };
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     playClick();
@@ -55,12 +93,38 @@ export const ProjectsPage: React.FC = () => {
       category,
       author: user.name,
       description,
+      image_url: imageUrl || undefined,
+      files: attachedFiles,
       status: 'EM_ANDAMENTO',
-      approved: user.role === 'ADMIN' ? 1 : 1,
+      approved: 1,
     });
     setTitle('');
     setDescription('');
+    setImageUrl('');
+    setAttachedFiles([]);
     setShowNewModal(false);
+  };
+
+  const handleDownloadFile = (file: ProjectFile) => {
+    playClick();
+    if (file.url && file.url !== '#') {
+      const a = document.createElement('a');
+      a.href = file.url;
+      a.download = file.name;
+      a.click();
+    } else {
+      const blob = new Blob(
+        [`Arquivo demonstrativo do LabMaker IFES Serra: ${file.name} (${file.type})`],
+        { type: 'text/plain;charset=utf-8' }
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    pushToast('DOWNLOAD INICIADO', `Baixando ${file.name} (${file.size})`, 'success');
   };
 
   return (
@@ -190,11 +254,39 @@ export const ProjectsPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="p-5 space-y-2.5">
+                    <div className="p-5 space-y-3">
                       <h3 className="font-display font-bold text-brand text-xl leading-snug">
                         {proj.title}
                       </h3>
                       <p className="text-sm text-gray-600 leading-relaxed">{proj.description}</p>
+
+                      {/* Arquivos anexados do projeto (.STL, .PDF, .DXF, etc.) */}
+                      {proj.files && proj.files.length > 0 && (
+                        <div className="pt-2 border-t border-gray-100 space-y-1.5">
+                          <p className="font-display font-bold text-[11px] uppercase text-brand flex items-center gap-1.5">
+                            <Paperclip className="w-3.5 h-3.5" /> Arquivos do Projeto ({proj.files.length})
+                          </p>
+                          <div className="space-y-1">
+                            {proj.files.map((file, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => handleDownloadFile(file)}
+                                className="w-full px-3 py-1.5 rounded-lg bg-[#F6F5F2] hover:bg-lime/40 border border-gray-200 flex items-center justify-between text-xs transition-colors"
+                              >
+                                <span className="flex items-center gap-2 truncate font-semibold text-surface-ink">
+                                  <FileText className="w-3.5 h-3.5 text-brand shrink-0" />
+                                  <span className="truncate">{file.name}</span>
+                                </span>
+                                <span className="flex items-center gap-1.5 shrink-0 font-mono text-[10px] text-brand font-bold">
+                                  {file.size}
+                                  <Download className="w-3.5 h-3.5" />
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -337,6 +429,30 @@ export const ProjectsPage: React.FC = () => {
                   placeholder="Descreva materiais usados, máquinas operadas e aplicação..."
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[#F6F5F2] border border-gray-300"
                 />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-display font-bold text-xs uppercase text-brand mb-1">
+                    IMAGEM DO PROJETO
+                  </label>
+                  <label className="w-full px-3 py-2 rounded-xl bg-[#F6F5F2] border border-dashed border-brand text-xs font-semibold text-brand flex items-center gap-2 cursor-pointer hover:bg-brand-light/20">
+                    <ImageIcon className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{imageUrl ? 'Imagem selecionada ✓' : 'Enviar imagem...'}</span>
+                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                  </label>
+                </div>
+                <div>
+                  <label className="block font-display font-bold text-xs uppercase text-brand mb-1">
+                    ARQUIVOS (.STL, .PDF, .DXF)
+                  </label>
+                  <label className="w-full px-3 py-2 rounded-xl bg-[#F6F5F2] border border-dashed border-brand text-xs font-semibold text-brand flex items-center gap-2 cursor-pointer hover:bg-brand-light/20">
+                    <Paperclip className="w-4 h-4 shrink-0" />
+                    <span className="truncate">
+                      {attachedFiles.length > 0 ? `${attachedFiles.length} arquivo(s) ✓` : 'Anexar arquivos...'}
+                    </span>
+                    <input type="file" multiple onChange={handleFilesAttach} className="hidden" />
+                  </label>
+                </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button

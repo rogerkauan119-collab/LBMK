@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import {
   Kanban,
   Calendar,
@@ -42,7 +42,25 @@ export const StudentDashboard: React.FC = () => {
     playClick,
   } = useApp();
 
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<StudentTab>('TAREFAS');
+  const [bookingType, setBookingType] = useState<'equipamento' | 'laboratorio'>('equipamento');
+
+  useEffect(() => {
+    const aba = searchParams.get('aba')?.toUpperCase();
+    const tipo = searchParams.get('tipo');
+    if (
+      aba &&
+      ['RESUMO', 'TAREFAS', 'AGENDAR', 'EMPRESTIMOS', 'REPOSICAO', 'SUGESTOES', 'HISTORICO'].includes(
+        aba
+      )
+    ) {
+      setActiveTab(aba as StudentTab);
+    }
+    if (tipo === 'laboratorio' || tipo === 'equipamento') {
+      setBookingType(tipo);
+    }
+  }, [searchParams]);
 
   // Form Nova Tarefa Kanban
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -605,9 +623,42 @@ export const StudentDashboard: React.FC = () => {
               </div>
 
               <form onSubmit={handleBookingSubmit} className="p-6 space-y-5">
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClick();
+                      setBookingType('equipamento');
+                    }}
+                    className={`py-2.5 px-3 rounded-xl border-2 font-display font-bold uppercase text-xs transition-all ${
+                      bookingType === 'equipamento'
+                        ? 'bg-brand text-white border-surface-ink shadow-neo-sm'
+                        : 'bg-[#F6F5F2] text-surface-ink border-gray-300'
+                    }`}
+                  >
+                    Agendar Equipamento
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClick();
+                      setBookingType('laboratorio');
+                    }}
+                    className={`py-2.5 px-3 rounded-xl border-2 font-display font-bold uppercase text-xs transition-all ${
+                      bookingType === 'laboratorio'
+                        ? 'bg-brand text-white border-surface-ink shadow-neo-sm'
+                        : 'bg-[#F6F5F2] text-surface-ink border-gray-300'
+                    }`}
+                  >
+                    Agendar Laboratório para Uso
+                  </button>
+                </div>
+
                 <div>
                   <label className="block font-display font-bold text-xs uppercase text-brand mb-1">
-                    ESCOLHA A MÁQUINA / ESTAÇÃO *
+                    {bookingType === 'laboratorio'
+                      ? 'ESPAÇO / BANCADA PRINCIPAL DO LABORATÓRIO *'
+                      : 'ESCOLHA A MÁQUINA / ESTAÇÃO *'}
                   </label>
                   <select
                     value={selectedMachineId}

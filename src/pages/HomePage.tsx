@@ -94,7 +94,7 @@ export const HomePage: React.FC = () => {
   return (
     <div className="flex-1">
       {/* 1. HERO PRINCIPAL — LABMAKER · IFES CAMPUS SERRA */}
-      <section className="bg-royal-grid text-white py-12 sm:py-16 border-b-4 border-accent relative overflow-hidden">
+      <section id="sobre" className="scroll-mt-20 bg-royal-grid text-white py-12 sm:py-16 border-b-4 border-accent relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-7 space-y-5">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/25 font-pixel text-[9px] text-accent tracking-wider">
@@ -422,7 +422,7 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 4. HERO DA PLATAFORMA DOS ALUNOS — SISTEMA DE GERENCIAMENTO DE TAREFAS (Fiel à Imagem 1) */}
+      {/* 4. HERO DA PLATAFORMA DOS ALUNOS — MAKERLAB QUEST (Fiel à Imagem enviada) */}
       <section className="bg-royal-grid text-white py-20 border-b-4 border-accent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Coluna Esquerda */}
@@ -432,125 +432,111 @@ export const HomePage: React.FC = () => {
             </div>
 
             <h2 className="font-display font-bold text-4xl sm:text-5xl uppercase leading-[1.05] tracking-tight">
-              SISTEMA DE GERENCIAMENTO DE TAREFAS
+              CONHEÇA O MAKERLAB QUEST
             </h2>
 
             <p className="text-brand-light text-base sm:text-lg leading-relaxed max-w-xl">
-              Acompanhe o andamento dos projetos do laboratório em tempo real. Os alunos organizam
-              tarefas, marcam progresso e mantêm tudo sob controle num painel único e colaborativo.
+              O MakerLab Quest é o portal oficial de progressão dos alunos do LabMaker IFES Serra.
+              Nele você acompanha missões práticas, acumula XP, evolui de nível e registra seu
+              avanço nas atividades e projetos do laboratório.
             </p>
 
             <div>
-              <button
-                type="button"
-                onClick={() => {
-                  playClick();
-                  if (user.role === 'VISITANTE') {
-                    navigate('/acesso?redirect=/aluno');
-                  } else {
-                    navigate('/aluno');
-                  }
-                }}
+              <a
+                href="https://script.google.com/macros/s/AKfycbzCpPMq2tkcmXh196XDrgDL3dj5tCcrxYHbr5IeUJVskY_YRmH9Ri_mPiFGxgrvI9fMZQ/exec"
+                target="_blank"
+                rel="noreferrer"
+                onClick={playClick}
                 onMouseEnter={playHover}
                 className="inline-flex items-center gap-2.5 px-7 py-4 rounded-full bg-accent hover:bg-accent-hover text-surface-ink border-2 border-surface-ink shadow-neo font-display font-bold uppercase tracking-wider text-sm sm:text-base transition-all active:translate-y-0.5"
               >
-                ABRIR SISTEMA DE TAREFAS
+                ABRIR MAKERLAB QUEST
                 <ArrowUpRight className="w-5 h-5" />
-                {user.role === 'VISITANTE' && <Lock className="w-4 h-4 ml-1" />}
-              </button>
+              </a>
             </div>
           </div>
 
-          {/* Coluna Direita: Mockup de navegador `labmaker-tarefas.app` idêntico à Imagem 1 */}
+          {/* Coluna Direita: Mockup de navegador explicando como o MakerLab Quest funciona */}
           <div className="lg:col-span-6">
-            <div className="rounded-[24px] bg-[#E8E6E1] text-surface-ink p-5 sm:p-6 border-2 border-surface-ink shadow-neo-lg">
+            <div className="rounded-[24px] bg-[#E8E7E3] text-surface-ink p-5 sm:p-6 border-2 border-surface-ink shadow-neo-lg">
               {/* Barra superior de navegador com bolinhas laranja, verde e azul */}
               <div className="flex items-center gap-2 pb-4 px-1">
-                <span className="w-3 h-3 rounded-full bg-[#FDB94E]" />
-                <span className="w-3 h-3 rounded-full bg-[#8CF25A]" />
-                <span className="w-3 h-3 rounded-full bg-[#1A2FBF]" />
-                <span className="ml-2 font-mono text-xs text-gray-500">labmaker-tarefas.app</span>
+                <span className="w-3 h-3 rounded-full bg-[#FDBA5A]" />
+                <span className="w-3 h-3 rounded-full bg-[#CEFFAD]" />
+                <span className="w-3 h-3 rounded-full bg-[#172EB9]" />
+                <span className="ml-2 font-mono text-xs text-gray-500">makerlab-quest.app</span>
               </div>
 
-              {/* Card branco interno com as 3 tarefas da referência */}
+              {/* Card branco interno explicando os 3 pilares do site */}
               <div className="bg-white rounded-[18px] p-5 shadow-sm border border-black/5 space-y-3.5">
                 <div className="flex items-center justify-between pb-1">
                   <span className="font-display font-bold text-brand text-xs sm:text-sm uppercase tracking-wider">
-                    QUADRO DE TAREFAS
+                    COMO FUNCIONA A PLATAFORMA
                   </span>
-                  <span className="font-mono text-xs text-gray-400">3 ativas</span>
+                  <span className="font-mono text-xs text-gray-400">3 pilares</span>
                 </div>
 
-                {/* Item 1: Protótipos impressão 3D (CONCLUÍDA) */}
-                <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-[#E8E6E1]/80">
-                  <div className="w-9 h-9 rounded-lg bg-[#C5F89A] text-green-900 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-[#E8E7E3]/80">
+                  <div className="w-9 h-9 rounded-lg bg-[#CEFFAD] text-green-900 flex items-center justify-center shrink-0">
                     <CheckCircle2 className="w-5 h-5" />
                   </div>
                   <div>
                     <p className="font-display font-bold text-brand text-sm sm:text-base">
-                      Protótipos impressão 3D
+                      1. Missões & Desafios Práticos
                     </p>
                     <p className="font-mono text-[11px] text-gray-600 uppercase tracking-wider">
-                      CONCLUÍDA
+                      CONCLUA ATIVIDADES NO LABMAKER E GANHE XP
                     </p>
                   </div>
                 </div>
 
-                {/* Item 2: Placa PCI — robô seguidor (EM ANDAMENTO) */}
-                <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-[#E8E6E1]/80">
-                  <div className="w-9 h-9 rounded-lg bg-[#FDE0A6] text-amber-900 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-[#E8E7E3]/80">
+                  <div className="w-9 h-9 rounded-lg bg-[#FDBA5A]/60 text-amber-900 flex items-center justify-center shrink-0">
                     <AlertCircle className="w-5 h-5" />
                   </div>
                   <div>
                     <p className="font-display font-bold text-brand text-sm sm:text-base">
-                      Placa PCI — robô seguidor
+                      2. Níveis & Progressão Individual
                     </p>
                     <p className="font-mono text-[11px] text-gray-600 uppercase tracking-wider">
-                      EM ANDAMENTO
+                      ACOMPANHE SUA EVOLUÇÃO NAS BANCADAS E PROJETOS
                     </p>
                   </div>
                 </div>
 
-                {/* Item 3: Corte a laser — embalagem (A FAZER) */}
-                <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-[#E8E6E1]/80">
+                <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-[#E8E7E3]/80">
                   <div className="w-9 h-9 rounded-lg bg-gray-200 text-gray-700 flex items-center justify-center shrink-0">
                     <Circle className="w-5 h-5" />
                   </div>
                   <div>
                     <p className="font-display font-bold text-brand text-sm sm:text-base">
-                      Corte a laser — embalagem
+                      3. Medalhas & Ranking do Campus
                     </p>
                     <p className="font-mono text-[11px] text-gray-600 uppercase tracking-wider">
-                      A FAZER
+                      DESBLOQUEIE CONQUISTAS EXCLUSIVAS DO IFES SERRA
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Três contadores inferiores em fonte pixel (12 CONCLUÍDAS, 05 EM CURSO, 08 A FAZER) */}
+              {/* Três destaques inferiores em fonte pixel */}
               <div className="grid grid-cols-3 gap-3.5 mt-4">
                 <div className="bg-white rounded-2xl py-4 px-3 text-center border border-black/5">
-                  <p className="font-pixel text-brand text-lg sm:text-xl">
-                    {String(completedCount).padStart(2, '0')}
-                  </p>
+                  <p className="font-pixel text-brand text-lg sm:text-xl">XP</p>
                   <p className="font-display font-semibold text-[10px] sm:text-xs text-gray-500 uppercase mt-1">
-                    CONCLUÍDAS
+                    PONTUAÇÃO
                   </p>
                 </div>
                 <div className="bg-white rounded-2xl py-4 px-3 text-center border border-black/5">
-                  <p className="font-pixel text-accent text-lg sm:text-xl">
-                    {String(inProgressCount).padStart(2, '0')}
-                  </p>
+                  <p className="font-pixel text-accent text-lg sm:text-xl">LVL</p>
                   <p className="font-display font-semibold text-[10px] sm:text-xs text-gray-500 uppercase mt-1">
-                    EM CURSO
+                    PROGRESSÃO
                   </p>
                 </div>
                 <div className="bg-white rounded-2xl py-4 px-3 text-center border border-black/5">
-                  <p className="font-pixel text-gray-500 text-lg sm:text-xl">
-                    {String(todoCount).padStart(2, '0')}
-                  </p>
+                  <p className="font-pixel text-gray-500 text-lg sm:text-xl">TOP</p>
                   <p className="font-display font-semibold text-[10px] sm:text-xs text-gray-500 uppercase mt-1">
-                    A FAZER
+                    RANKING
                   </p>
                 </div>
               </div>
@@ -560,7 +546,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 5. CONHEÇA A NOSSA EQUIPE DO LABMAKER (Tema Escuro #0A0E1A fiel à Imagem 5) */}
-      <section className="bg-arcade-bg text-white py-20 border-b-4 border-accent">
+      <section id="equipe" className="scroll-mt-20 bg-arcade-bg text-white py-20 border-b-4 border-accent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="font-display font-bold text-3xl sm:text-5xl uppercase tracking-tight">
@@ -608,7 +594,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 6. PERGUNTAS FREQUENTES (Acordeão) + LOCAL E CONTATO RÁPIDO */}
-      <section className="bg-scanlines-light py-20">
+      <section id="faq" className="scroll-mt-20 bg-scanlines-light py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12">
           {/* Coluna FAQ */}
           <div className="lg:col-span-7">

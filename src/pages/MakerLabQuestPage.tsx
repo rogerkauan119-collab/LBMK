@@ -61,6 +61,18 @@ export const MakerLabQuestPage: React.FC = () => {
               laboratório!
             </p>
 
+            <div>
+              <a
+                href="https://script.google.com/macros/s/AKfycbzCpPMq2tkcmXh196XDrgDL3dj5tCcrxYHbr5IeUJVskY_YRmH9Ri_mPiFGxgrvI9fMZQ/exec"
+                target="_blank"
+                rel="noreferrer"
+                onClick={playClick}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-accent hover:bg-accent-hover text-surface-ink border-2 border-surface-ink shadow-neo-sm font-display font-bold uppercase text-sm tracking-wider"
+              >
+                ACESSAR MAKERLAB QUEST OFICIAL ↗
+              </a>
+            </div>
+
             {/* Barra de Progresso de Nível em steps */}
             <div className="pt-2 space-y-2 max-w-xl">
               <div className="flex items-center justify-between font-pixel text-[10px]">

@@ -31,7 +31,25 @@ function getSiteContentMap() {
 // 1. Bootstrap inicial de todos os dados públicos + estado
 app.get('/api/bootstrap', (_req, res) => {
   const machines = db.prepare('SELECT * FROM machines ORDER BY id ASC').all();
-  const projects = db.prepare('SELECT * FROM projects ORDER BY id DESC').all();
+  const projectsRaw = db.prepare('SELECT * FROM projects ORDER BY id DESC').all() as Array<Record<string, unknown>>;
+  const projects = projectsRaw.map((p) => {
+    let parsedFiles = [];
+    try {
+      parsedFiles = JSON.parse(String(p.files_json || '[]'));
+    } catch {
+      parsedFiles = [];
+    }
+    if (parsedFiles.length === 0) {
+      parsedFiles = [
+        { name: `documentacao-projeto-${p.id}.pdf`, size: '1.2 MB', type: 'PDF', url: '#' },
+        { name: `modelo-3d-v${p.id}.stl`, size: '4.5 MB', type: 'STL', url: '#' },
+      ];
+    }
+    return {
+      ...p,
+      files: parsedFiles,
+    };
+  });
   const tasks = db.prepare('SELECT * FROM tasks ORDER BY id ASC').all();
   const bookings = db.prepare('SELECT * FROM bookings ORDER BY date ASC, time_slot ASC').all();
   const checkins = db.prepare('SELECT * FROM checkins ORDER BY id DESC LIMIT 100').all();
@@ -558,15 +576,16 @@ app.patch('/api/suggestions/:id', (req, res) => {
 });
 
 app.post('/api/projects', (req, res) => {
-  const { title, category, author, description, status, image_url, approved } = req.body;
+  const { title, category, author, description, status, image_url, files, approved } = req.body;
   if (!title || !description) {
     res.status(400).json({ error: 'Informe título e descrição do projeto.' });
     return;
   }
+  const filesJson = JSON.stringify(Array.isArray(files) ? files : []);
   const r = db
     .prepare(`
-      INSERT INTO projects (title, category, author, description, status, image_url, approved)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO projects (title, category, author, description, status, image_url, files_json, approved)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .run(
       title.trim(),
@@ -575,10 +594,16 @@ app.post('/api/projects', (req, res) => {
       description.trim(),
       status || 'EM_ANDAMENTO',
       image_url || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=800&q=80',
+      filesJson,
       approved === false ? 0 : 1
     );
-  const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(r.lastInsertRowid);
-  res.status(201).json({ project });
+  const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(r.lastInsertRowid) as Record<string, unknown>;
+  res.status(201).json({
+    project: {
+      ...project,
+      files: JSON.parse(String(project.files_json || '[]')),
+    },
+  });
 });
 
 app.patch('/api/projects/:id', (req, res) => {

@@ -3,20 +3,24 @@
 @tailwind utilities;
 
 :root {
-  --brand-primary: #1A2FBF;
-  --brand-dark: #0B1470;
+  --brand-primary: #172EB9;
+  --brand-dark: #0E1D7A;
   --brand-light: #CFD6FF;
-  --accent-yellow: #FDB94E;
+  --accent-yellow: #FDBA5A;
   --accent-hover: #F59E0B;
   --surface-white: #FFFFFF;
-  --surface-warm: #E8E6E1;
+  --surface-warm: #E8E7E3;
   --arcade-bg: #0A0E1A;
   --arcade-cyan: #22D3EE;
-  --status-lime: #8CF25A;
-  --text-ink: #0B1B3A;
+  --status-lime: #CEFFAD;
+  --text-ink: #3A3A3A;
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     font-family: 'Rajdhani', 'Inter', sans-serif;
     background-color: var(--surface-warm);
@@ -30,10 +34,15 @@
   }
 }
 
-/* Fundo claro limpo (cinza-quente com leve gradiente, sem linhas) */
+/* Fundo claro limpo (cinza-claro #E8E7E3 da identidade visual) */
 .bg-scanlines-light {
-  background-color: #E8E6E1;
-  background-image: linear-gradient(180deg, #ECEAE6 0%, #E8E6E1 100%);
+  background-color: #E8E7E3;
+  background-image: linear-gradient(180deg, #ECEBE8 0%, #E8E7E3 100%);
+}
+
+/* Capa com degradê oficial do PDF: Laranja Claro -> Cinza Claro -> Verde Claro */
+.bg-lbmk-cover {
+  background: linear-gradient(180deg, rgba(253, 186, 90, 0.45) 0%, #E8E7E3 35%, #E8E7E3 68%, rgba(206, 255, 173, 0.55) 100%);
 }
 
 /* Card branco limpo */

@@ -79,7 +79,7 @@ export const MachinesPage: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 space-y-16">
         {/* 1. Catálogo de Serviços Prestados */}
-        <div>
+        <div id="servicos" className="scroll-mt-24">
           <p className="font-pixel text-brand text-[10px] uppercase">SERVIÇOS PRESTADOS</p>
           <h2 className="font-display font-bold text-brand text-2xl sm:text-4xl uppercase mt-1 mb-6">
             CATÁLOGO DE SERVIÇOS TÉCNICOS
@@ -103,7 +103,7 @@ export const MachinesPage: React.FC = () => {
         </div>
 
         {/* 2. Grade Completa de Máquinas & Bancadas */}
-        <div>
+        <div id="maquinas" className="scroll-mt-24">
           <p className="font-pixel text-brand text-[10px] uppercase">MÃO NA MASSA</p>
           <h2 className="font-display font-bold text-brand text-2xl sm:text-4xl uppercase mt-1 mb-6">
             MÁQUINAS & ESTAÇÕES DE PROTOTIPAGEM
@@ -175,8 +175,8 @@ export const MachinesPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 3. Agenda do Laboratório (Calendário; somente leitura para visitante) */}
-        <div className="bg-white rounded-2xl border-2 border-surface-ink shadow-neo-lg overflow-hidden">
+        {/* 3. Agenda do Laboratório e Agendamento de Serviços */}
+        <div id="agenda" className="scroll-mt-24 bg-white rounded-2xl border-2 border-surface-ink shadow-neo-lg overflow-hidden">
           <div className="bg-brand px-6 py-5 border-b-2 border-accent flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <span className="font-pixel text-accent text-[9px] uppercase">

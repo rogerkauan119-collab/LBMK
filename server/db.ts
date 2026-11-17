@@ -75,6 +75,7 @@ export function initDatabase() {
       description TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'CONCLUIDO',
       image_url TEXT NOT NULL,
+      files_json TEXT DEFAULT '[]',
       approved INTEGER DEFAULT 1,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
@@ -186,4 +187,11 @@ export function initDatabase() {
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Migração segura caso o banco já exista sem a coluna files_json
+  try {
+    db.exec(`ALTER TABLE projects ADD COLUMN files_json TEXT DEFAULT '[]';`);
+  } catch {
+    // Coluna já existe
+  }
 }
