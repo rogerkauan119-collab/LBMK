@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -21,9 +21,61 @@ import {
   Mail,
   Lock,
   Sparkles,
+  Camera,
+  Target,
+  Wrench,
+  Layers,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { MascotRobotPixel, PixelMachineBadge } from '../components/ui/PixelArts';
+
+interface AboutImageSlot {
+  id: string;
+  tag: string;
+  title: string;
+  caption: string;
+  defaultUrl: string;
+  spanClass: string;
+}
+
+const DEFAULT_ABOUT_SLOTS: AboutImageSlot[] = [
+  {
+    id: 'slot-1',
+    tag: 'ESPAÇO MAKER · VISÃO GERAL',
+    title: 'Bancadas Colaborativas & Impressão 3D',
+    caption: 'Ambiente integrado para prototipagem rápida, modelagem CAD e desenvolvimento de projetos.',
+    defaultUrl:
+      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1000&q=80',
+    spanClass: 'sm:col-span-2 h-56 sm:h-64',
+  },
+  {
+    id: 'slot-2',
+    tag: 'ELETRÔNICA & PCI',
+    title: 'Fresagem e Soldagem SMD',
+    caption: 'Confecção de placas de circuito impresso e testes embarcados.',
+    defaultUrl:
+      'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=700&q=80',
+    spanClass: 'h-48 sm:h-52',
+  },
+  {
+    id: 'slot-3',
+    tag: 'MANUFATURA & LASER',
+    title: 'Corte a Laser & Usinagem CNC',
+    caption: 'Precisão milimétrica em acrílico, MDF e polímeros.',
+    defaultUrl:
+      'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=700&q=80',
+    spanClass: 'h-48 sm:h-52',
+  },
+  {
+    id: 'slot-4',
+    tag: 'ROBÓTICA & COMUNIDADE',
+    title: 'Oficinas, Pesquisa e Extensão no IFES Serra',
+    caption: 'Trabalho em equipe unindo estudantes, servidores e comunidade externa.',
+    defaultUrl:
+      'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=1000&q=80',
+    spanClass: 'sm:col-span-2 h-48 sm:h-52',
+  },
+];
 
 export const HomePage: React.FC = () => {
   const { data, user, playClick, playHover, switchProfileQuick } = useApp();
@@ -41,27 +93,74 @@ export const HomePage: React.FC = () => {
   const inProgressCount = Math.max(5, tasks.filter((t) => t.status === 'EM_ANDAMENTO').length);
   const todoCount = Math.max(8, tasks.filter((t) => t.status === 'A_FAZER').length);
 
-  // Carrossel "RECURSOS DISPONÍVEIS" com rolagem automática que pausa no hover
-  const [carouselIndex, setCarouselIndex] = useState(0);
+  // Carrossel "RECURSOS DISPONÍVEIS" com rolagem contínua suave que pausa no hover e acende o card sob o mouse
   const [isPaused, setIsPaused] = useState(false);
+  const [hoveredCardKey, setHoveredCardKey] = useState<string | null>(null);
+  const carouselTrackRef = useRef<HTMLDivElement | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [customSlotImages, setCustomSlotImages] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('labmaker_about_slots');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
 
+  const handleSlotImageUpload = (slotId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        const next = { ...customSlotImages, [slotId]: reader.result };
+        setCustomSlotImages(next);
+        localStorage.setItem('labmaker_about_slots', JSON.stringify(next));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Rolagem contínua tipo carrossel que para instantaneamente ao aproximar o mouse
   useEffect(() => {
-    if (isPaused || machines.length <= 1) return;
-    const timer = setInterval(() => {
-      setCarouselIndex((prev) => (prev + 1) % machines.length);
-    }, 3800);
-    return () => clearInterval(timer);
+    const track = carouselTrackRef.current;
+    if (!track || machines.length === 0) return;
+
+    let animId: number;
+    const speed = 0.7; // velocidade suave em pixels por frame
+
+    const step = () => {
+      if (!isPaused && track) {
+        track.scrollLeft += speed;
+        // Loop infinito suave quando chega na metade da pista duplicada
+        const halfWidth = track.scrollWidth / 2;
+        if (halfWidth > 0 && track.scrollLeft >= halfWidth) {
+          track.scrollLeft -= halfWidth;
+        }
+      }
+      animId = requestAnimationFrame(step);
+    };
+
+    animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
   }, [isPaused, machines.length]);
 
   const handlePrevCarousel = () => {
     playClick();
-    setCarouselIndex((prev) => (prev - 1 + machines.length) % machines.length);
+    const track = carouselTrackRef.current;
+    if (!track) return;
+    const halfWidth = track.scrollWidth / 2;
+    if (track.scrollLeft <= 10 && halfWidth > 0) {
+      track.scrollLeft += halfWidth;
+    }
+    track.scrollBy({ left: -370, behavior: 'smooth' });
   };
 
   const handleNextCarousel = () => {
     playClick();
-    setCarouselIndex((prev) => (prev + 1) % machines.length);
+    const track = carouselTrackRef.current;
+    if (!track) return;
+    track.scrollBy({ left: 370, behavior: 'smooth' });
   };
 
   const renderMachineIcon = (iconType: string) => {
@@ -81,20 +180,13 @@ export const HomePage: React.FC = () => {
     }
   };
 
-  // Monta janela deslizante de 3 máquinas visíveis no carrossel
-  const visibleMachines =
-    machines.length >= 3
-      ? [
-          machines[carouselIndex % machines.length],
-          machines[(carouselIndex + 1) % machines.length],
-          machines[(carouselIndex + 2) % machines.length],
-        ]
-      : machines;
+  // Lista duplicada para o carrossel infinito contínuo
+  const carouselMachines = machines.length > 0 ? [...machines, ...machines] : [];
 
   return (
     <div className="flex-1">
       {/* 1. HERO PRINCIPAL — LABMAKER · IFES CAMPUS SERRA */}
-      <section id="sobre" className="scroll-mt-20 bg-royal-grid text-white py-12 sm:py-16 border-b-4 border-accent relative overflow-hidden">
+      <section className="bg-royal-grid text-white py-12 sm:py-16 border-b-4 border-accent relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-7 space-y-5">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/25 font-pixel text-[9px] text-accent tracking-wider">
@@ -211,6 +303,194 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
+      {/* 1.5. SEÇÃO SOBRE O LABMAKER — INFORMATIVA E COM SLOTS DE IMAGENS HARMÔNICOS */}
+      <section
+        id="sobre"
+        className="scroll-mt-20 bg-lbmk-cover py-20 border-b-4 border-surface-ink"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
+          {/* Cabeçalho da Seção Sobre */}
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+            <div className="space-y-3 max-w-3xl">
+              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand text-lime border-2 border-surface-ink shadow-neo-sm font-pixel text-[8px] sm:text-[9px] uppercase tracking-wider">
+                PROJETO DE EXTENSÃO · IDENTIDADE & INOVAÇÃO
+              </span>
+              <h2 className="font-display font-extrabold text-brand text-3xl sm:text-5xl uppercase tracking-tight leading-[1.06]">
+                PRIMEIRO DE TUDO: O QUE É O LABMAKER?
+              </h2>
+              <p className="text-surface-ink text-base sm:text-lg font-medium leading-relaxed">
+                O <strong>LabMaker IFES Campus Serra</strong> é um laboratório criativo, aberto e
+                multidisciplinar onde estudantes, docentes e a comunidade externa desenvolvem
+                projetos práticos que unem <strong>tecnologia, inovação e educação</strong>.
+              </p>
+            </div>
+
+            {/* Pílulas de Palavras-Chave Oficiais */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                '🧠 Criatividade',
+                '🤖 Tecnologia',
+                '💡 Inovação',
+                '🖨️ Impressoras 3D',
+                '🛠️ Mão na Massa',
+              ].map((kw) => (
+                <span
+                  key={kw}
+                  className="px-3.5 py-2 rounded-xl bg-white text-brand border-2 border-surface-ink shadow-neo-sm font-display font-bold text-xs uppercase"
+                >
+                  {kw}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Grid Principal: Informações Estruturadas (5 cols) + Mosaico Harmônico de Slots de Imagens (7 cols) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+            {/* Coluna Esquerda: Características, Objetivo e Setores do Lab */}
+            <div className="lg:col-span-5 flex flex-col justify-between gap-5">
+              {/* Card 1: Características Principais */}
+              <div className="bg-white rounded-2xl border-[2.5px] border-surface-ink shadow-neo p-6 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand text-accent border-2 border-surface-ink flex items-center justify-center shrink-0">
+                    <Wrench className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="font-pixel text-[8px] text-brand uppercase">ESTRUTURA</span>
+                    <h3 className="font-display font-bold text-brand text-lg uppercase">
+                      CARACTERÍSTICAS PRINCIPAIS
+                    </h3>
+                  </div>
+                </div>
+                <ul className="space-y-2.5 text-sm sm:text-base text-surface-ink font-medium">
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-5 h-5 text-brand shrink-0 mt-0.5" />
+                    <span>
+                      Equipado com ferramentas manuais e digitais de ponta: impressoras 3D (FDM e
+                      Resina SLA 8K), fresadora de PCI, router CNC, corte a laser CO2 e kits de
+                      robótica.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-5 h-5 text-brand shrink-0 mt-0.5" />
+                    <span>
+                      Estimula a aprendizagem prática (<em>learning by doing</em>), o trabalho em
+                      equipe multidisciplinar e a resolução de problemas reais da sociedade e da
+                      indústria.
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Card 2: Nosso Objetivo */}
+              <div className="bg-brand text-white rounded-2xl border-[2.5px] border-surface-ink shadow-neo p-6 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-accent text-surface-ink border-2 border-surface-ink flex items-center justify-center shrink-0">
+                    <Target className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="font-pixel text-[8px] text-lime uppercase">PROPÓSITO</span>
+                    <h3 className="font-display font-bold text-white text-lg uppercase">
+                      NOSSO OBJETIVO NO CAMPUS
+                    </h3>
+                  </div>
+                </div>
+                <p className="text-sm sm:text-base text-brand-light leading-relaxed font-medium">
+                  Criar um espaço de <strong>inovação aberta</strong> no IFES Campus Serra onde a
+                  comunidade acadêmica e parceiros externos possam experimentar, criar, aprender e
+                  transformar ideias em protótipos e soluções reais.
+                </p>
+              </div>
+
+              {/* Card 3: Divisão das Bancadas do Laboratório */}
+              <div className="bg-white rounded-2xl border-[2.5px] border-surface-ink shadow-neo p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-brand" />
+                  <h4 className="font-display font-bold text-brand text-sm uppercase tracking-wider">
+                    SETORES & ARMÁRIOS TÉCNICOS DO LAB
+                  </h4>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                  <div className="p-3 rounded-xl bg-lime/40 border border-surface-ink/20">
+                    <p className="font-display font-bold text-brand uppercase">01. Ferramentas & EPI</p>
+                    <p className="text-surface-ink/80 mt-1">
+                      Instrumentos de bancada, medição e proteção individual obrigatória.
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-accent/30 border border-surface-ink/20">
+                    <p className="font-display font-bold text-brand uppercase">
+                      02. Eletrônica & PCI
+                    </p>
+                    <p className="text-surface-ink/80 mt-1">
+                      Componentes SMD, sensores, microcontroladores ESP32 e Arduino.
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-brand-light/40 border border-surface-ink/20">
+                    <p className="font-display font-bold text-brand uppercase">
+                      03. Informática & 3D
+                    </p>
+                    <p className="text-surface-ink/80 mt-1">
+                      Estações CAD/CAM, filamentos técnicos, resinas e acabamento.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Coluna Direita: Mosaico Harmônico de Slots de Imagens (Bento Grid com suporte a foto customizada) */}
+            <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {DEFAULT_ABOUT_SLOTS.map((slot, index) => {
+                const imgSrc = customSlotImages[slot.id] || slot.defaultUrl;
+                return (
+                  <div
+                    key={slot.id}
+                    onMouseEnter={playHover}
+                    className={`group relative rounded-2xl overflow-hidden border-[2.5px] border-surface-ink shadow-neo-lg bg-arcade-bg flex flex-col justify-between p-5 ${slot.spanClass}`}
+                  >
+                    <img
+                      src={imgSrc}
+                      alt={slot.title}
+                      className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover:scale-105 group-hover:opacity-65 transition-all duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A0E1A] via-[#0A0E1A]/45 to-transparent" />
+
+                    {/* Topo do Slot: Etiqueta + Botão para personalizar foto do slot */}
+                    <div className="relative z-10 flex items-center justify-between gap-2">
+                      <span className="px-2.5 py-1 rounded-lg bg-brand/95 text-lime border border-surface-ink font-pixel text-[8px] uppercase shadow-neo-sm">
+                        SLOT 0{index + 1} · {slot.tag}
+                      </span>
+
+                      <label
+                        title="Clique para enviar uma foto real do laboratório para este slot"
+                        className="px-2.5 py-1 rounded-lg bg-white/90 hover:bg-accent text-surface-ink border border-surface-ink font-display font-bold text-[11px] uppercase inline-flex items-center gap-1.5 cursor-pointer shadow-neo-sm transition-colors"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>Trocar Foto</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleSlotImageUpload(slot.id, e)}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    {/* Base do Slot: Título e Legenda */}
+                    <div className="relative z-10 space-y-1">
+                      <h3 className="font-display font-bold text-white text-lg sm:text-xl uppercase tracking-wide drop-shadow">
+                        {slot.title}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-gray-200 leading-snug max-w-xl">
+                        {slot.caption}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* 2. CATÁLOGO DE SERVIÇOS + CARROSSEL "RECURSOS DISPONÍVEIS" (Fiel às Imagens 2 e 4) */}
       <section className="bg-scanlines-light py-16 border-b-2 border-surface-ink/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-16">
@@ -250,22 +530,36 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Bloco MÃO NA MASSA — RECURSOS DISPONÍVEIS (Carrossel igual à referência 2) */}
+          {/* Bloco MÃO NA MASSA — RECURSOS DISPONÍVEIS (Carrossel contínuo que para no hover e acende o item quando o mouse chega perto) */}
           <div
             onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
+            onMouseLeave={() => {
+              setIsPaused(false);
+              setHoveredCardKey(null);
+            }}
             className="relative"
           >
-            <div className="mb-8">
-              <p className="font-pixel text-brand text-[10px] sm:text-xs tracking-[0.16em] uppercase">
-                MÃO NA MASSA
-              </p>
-              <h2 className="font-display font-bold text-brand text-3xl sm:text-5xl uppercase tracking-tight mt-1">
-                RECURSOS DISPONÍVEIS
-              </h2>
-              <p className="text-gray-600 text-base sm:text-lg mt-1 font-medium">
-                Passe o mouse para pausar a rolagem automática e explorar os detalhes técnicos. 🥰
-              </p>
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div>
+                <p className="font-pixel text-brand text-[10px] sm:text-xs tracking-[0.16em] uppercase">
+                  MÃO NA MASSA
+                </p>
+                <h2 className="font-display font-bold text-brand text-3xl sm:text-5xl uppercase tracking-tight mt-1">
+                  RECURSOS DISPONÍVEIS
+                </h2>
+                <p className="text-gray-600 text-base sm:text-lg mt-1 font-medium">
+                  Aproxime o mouse para pausar o carrossel e acender o equipamento desejado. ✨
+                </p>
+              </div>
+              <span
+                className={`self-start sm:self-auto px-3 py-1.5 rounded-lg border-2 border-surface-ink font-pixel text-[8px] uppercase transition-colors ${
+                  isPaused
+                    ? 'bg-accent text-surface-ink shadow-neo-sm'
+                    : 'bg-white text-brand'
+                }`}
+              >
+                {isPaused ? '⏸ CARROSSEL PAUSADO' : '▶ ROLAGEM AUTOMÁTICA'}
+              </span>
             </div>
 
             <div className="relative flex items-center">
@@ -274,63 +568,117 @@ export const HomePage: React.FC = () => {
                 type="button"
                 onClick={handlePrevCarousel}
                 aria-label="Recurso anterior"
-                className="absolute -left-2 sm:-left-4 z-20 w-11 h-11 rounded-[8px] bg-accent hover:bg-accent-hover text-surface-ink border-2 border-surface-ink shadow-neo flex items-center justify-center active:translate-y-0.5 transition-all"
+                className="absolute -left-2 sm:-left-4 z-30 w-11 h-11 rounded-[8px] bg-accent hover:bg-accent-hover text-surface-ink border-2 border-surface-ink shadow-neo flex items-center justify-center active:translate-y-0.5 transition-all"
               >
                 <ChevronLeft className="w-6 h-6 stroke-[2.8]" />
               </button>
 
-              <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 px-2 sm:px-6">
-                {visibleMachines.map((mac) => (
-                  <article
-                    key={`${mac.id}-${carouselIndex}`}
-                    className="group relative h-[360px] sm:h-[390px] rounded-[16px] overflow-hidden border-[3px] border-surface-ink shadow-neo-lg bg-arcade-bg flex flex-col justify-end p-6"
-                  >
-                    <img
-                      src={mac.image_url}
-                      alt={mac.name}
-                      className="absolute inset-0 w-full h-full object-cover opacity-55 group-hover:scale-105 group-hover:opacity-40 transition-all duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#060913] via-[#060913]/70 to-transparent" />
+              {/* Pista do Carrossel Contínuo */}
+              <div
+                ref={carouselTrackRef}
+                className="w-full flex items-stretch gap-6 overflow-x-hidden py-4 px-3 sm:px-6 select-none"
+              >
+                {carouselMachines.map((mac, idx) => {
+                  const cardKey = `${mac.id}-${idx}`;
+                  const isLit = hoveredCardKey === cardKey;
 
-                    {/* Status pill no canto superior direito */}
-                    <div className="absolute top-4 right-4 z-10">
-                      <span
-                        className={`px-2.5 py-1 rounded font-pixel text-[8px] uppercase border ${
-                          mac.status === 'DISPONIVEL'
-                            ? 'bg-lime text-surface-ink border-surface-ink'
-                            : mac.status === 'EM_USO'
-                            ? 'bg-accent text-surface-ink border-surface-ink'
-                            : 'bg-red-500 text-white border-white'
+                  return (
+                    <article
+                      key={cardKey}
+                      onMouseEnter={() => {
+                        playHover();
+                        setHoveredCardKey(cardKey);
+                      }}
+                      onMouseLeave={() => setHoveredCardKey(null)}
+                      className={`group relative shrink-0 w-[300px] sm:w-[350px] h-[380px] sm:h-[400px] rounded-[18px] overflow-hidden border-[3px] bg-arcade-bg flex flex-col justify-end p-6 cursor-pointer transition-all duration-300 ${
+                        isLit
+                          ? 'border-accent shadow-[0_0_32px_rgba(253,186,90,0.55),6px_6px_0px_#3A3A3A] -translate-y-2 scale-[1.02] brightness-110 z-20'
+                          : 'border-surface-ink shadow-neo-lg brightness-[0.55] saturate-75 hover:brightness-105'
+                      }`}
+                    >
+                      {/* Imagem de fundo: escura/sombreada em repouso, acende com brilho total ao aproximar o mouse */}
+                      <img
+                        src={mac.image_url}
+                        alt={mac.name}
+                        className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${
+                          isLit
+                            ? 'opacity-100 scale-105 brightness-110 saturate-110'
+                            : 'opacity-35 scale-100 brightness-50'
                         }`}
-                      >
-                        {mac.status === 'DISPONIVEL'
-                          ? 'DISPONÍVEL'
-                          : mac.status === 'EM_USO'
-                          ? 'EM USO'
-                          : 'MANUTENÇÃO'}
-                      </span>
-                    </div>
+                      />
 
-                    <div className="relative z-10 space-y-3">
-                      {/* Ícone em quadradinho azul com borda amarela/clara exatamente como na referência */}
-                      <div className="w-11 h-11 rounded-[10px] bg-brand border-2 border-accent flex items-center justify-center shadow-neo-sm">
-                        {renderMachineIcon(mac.icon_type)}
+                      {/* Camada de sombra escura que clareia quando o mouse chega perto */}
+                      <div
+                        className={`absolute inset-0 transition-opacity duration-300 ${
+                          isLit
+                            ? 'bg-gradient-to-t from-[#060913]/95 via-[#060913]/35 to-transparent opacity-90'
+                            : 'bg-gradient-to-t from-[#03050A] via-[#050811]/85 to-[#050811]/70 opacity-100'
+                        }`}
+                      />
+
+                      {/* Halo de luz no topo quando aceso */}
+                      {isLit && (
+                        <div className="pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 w-60 h-32 rounded-full bg-accent/30 blur-2xl" />
+                      )}
+
+                      {/* Status pill no canto superior direito */}
+                      <div className="absolute top-4 right-4 z-10">
+                        <span
+                          className={`px-2.5 py-1 rounded font-pixel text-[8px] uppercase border transition-transform ${
+                            mac.status === 'DISPONIVEL'
+                              ? 'bg-lime text-surface-ink border-surface-ink'
+                              : mac.status === 'EM_USO'
+                              ? 'bg-accent text-surface-ink border-surface-ink'
+                              : 'bg-red-500 text-white border-white'
+                          }`}
+                        >
+                          {mac.status === 'DISPONIVEL'
+                            ? 'DISPONÍVEL'
+                            : mac.status === 'EM_USO'
+                            ? 'EM USO'
+                            : 'MANUTENÇÃO'}
+                        </span>
                       </div>
 
-                      <h3 className="font-pixel text-accent text-sm sm:text-base tracking-wide uppercase">
-                        {mac.name}
-                      </h3>
+                      <div className="relative z-10 space-y-3">
+                        {/* Ícone em quadradinho azul com borda amarela que brilha quando aceso */}
+                        <div
+                          className={`w-11 h-11 rounded-[10px] border-2 flex items-center justify-center transition-all duration-300 ${
+                            isLit
+                              ? 'bg-accent text-surface-ink border-white shadow-[0_0_16px_rgba(253,186,90,0.8)] scale-110'
+                              : 'bg-brand text-white border-accent shadow-neo-sm'
+                          }`}
+                        >
+                          {renderMachineIcon(mac.icon_type)}
+                        </div>
 
-                      <p className="text-gray-200 text-sm sm:text-base leading-snug">
-                        {mac.short_desc}
-                      </p>
+                        <h3
+                          className={`font-pixel text-sm sm:text-base tracking-wide uppercase transition-colors ${
+                            isLit ? 'text-white drop-shadow-[0_2px_8px_rgba(253,186,90,0.6)]' : 'text-accent'
+                          }`}
+                        >
+                          {mac.name}
+                        </h3>
 
-                      <p className="text-xs text-arcade-cyan font-mono pt-1 opacity-95">
-                        {mac.specs}
-                      </p>
-                    </div>
-                  </article>
-                ))}
+                        <p
+                          className={`text-sm sm:text-base leading-snug transition-colors ${
+                            isLit ? 'text-white font-medium' : 'text-gray-300'
+                          }`}
+                        >
+                          {mac.short_desc}
+                        </p>
+
+                        <p
+                          className={`text-xs font-mono pt-1 transition-all duration-300 ${
+                            isLit ? 'text-lime opacity-100' : 'text-arcade-cyan/70 opacity-75'
+                          }`}
+                        >
+                          {mac.specs}
+                        </p>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
 
               {/* Seta quadrada amarela direita */}
@@ -338,7 +686,7 @@ export const HomePage: React.FC = () => {
                 type="button"
                 onClick={handleNextCarousel}
                 aria-label="Próximo recurso"
-                className="absolute -right-2 sm:-right-4 z-20 w-11 h-11 rounded-[8px] bg-accent hover:bg-accent-hover text-surface-ink border-2 border-surface-ink shadow-neo flex items-center justify-center active:translate-y-0.5 transition-all"
+                className="absolute -right-2 sm:-right-4 z-30 w-11 h-11 rounded-[8px] bg-accent hover:bg-accent-hover text-surface-ink border-2 border-surface-ink shadow-neo flex items-center justify-center active:translate-y-0.5 transition-all"
               >
                 <ChevronRight className="w-6 h-6 stroke-[2.8]" />
               </button>
@@ -417,129 +765,6 @@ export const HomePage: React.FC = () => {
                 Acessa o Painel Admin: aprova ou bloqueia horários, gerencia estoque e máquinas
                 (CRUD), modera projetos, edita o site e exporta relatórios CSV.
               </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. HERO DA PLATAFORMA DOS ALUNOS — MAKERLAB QUEST (Fiel à Imagem enviada) */}
-      <section className="bg-royal-grid text-white py-20 border-b-4 border-accent">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          {/* Coluna Esquerda */}
-          <div className="lg:col-span-6 space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#2A41E0] border border-white/25 text-xs font-display font-bold uppercase tracking-wider text-brand-light">
-              <span className="text-accent">☷</span> PLATAFORMA DOS ALUNOS
-            </div>
-
-            <h2 className="font-display font-bold text-4xl sm:text-5xl uppercase leading-[1.05] tracking-tight">
-              CONHEÇA O MAKERLAB QUEST
-            </h2>
-
-            <p className="text-brand-light text-base sm:text-lg leading-relaxed max-w-xl">
-              O MakerLab Quest é o portal oficial de progressão dos alunos do LabMaker IFES Serra.
-              Nele você acompanha missões práticas, acumula XP, evolui de nível e registra seu
-              avanço nas atividades e projetos do laboratório.
-            </p>
-
-            <div>
-              <a
-                href="https://script.google.com/macros/s/AKfycbzCpPMq2tkcmXh196XDrgDL3dj5tCcrxYHbr5IeUJVskY_YRmH9Ri_mPiFGxgrvI9fMZQ/exec"
-                target="_blank"
-                rel="noreferrer"
-                onClick={playClick}
-                onMouseEnter={playHover}
-                className="inline-flex items-center gap-2.5 px-7 py-4 rounded-full bg-accent hover:bg-accent-hover text-surface-ink border-2 border-surface-ink shadow-neo font-display font-bold uppercase tracking-wider text-sm sm:text-base transition-all active:translate-y-0.5"
-              >
-                ABRIR MAKERLAB QUEST
-                <ArrowUpRight className="w-5 h-5" />
-              </a>
-            </div>
-          </div>
-
-          {/* Coluna Direita: Mockup de navegador explicando como o MakerLab Quest funciona */}
-          <div className="lg:col-span-6">
-            <div className="rounded-[24px] bg-[#E8E7E3] text-surface-ink p-5 sm:p-6 border-2 border-surface-ink shadow-neo-lg">
-              {/* Barra superior de navegador com bolinhas laranja, verde e azul */}
-              <div className="flex items-center gap-2 pb-4 px-1">
-                <span className="w-3 h-3 rounded-full bg-[#FDBA5A]" />
-                <span className="w-3 h-3 rounded-full bg-[#CEFFAD]" />
-                <span className="w-3 h-3 rounded-full bg-[#172EB9]" />
-                <span className="ml-2 font-mono text-xs text-gray-500">makerlab-quest.app</span>
-              </div>
-
-              {/* Card branco interno explicando os 3 pilares do site */}
-              <div className="bg-white rounded-[18px] p-5 shadow-sm border border-black/5 space-y-3.5">
-                <div className="flex items-center justify-between pb-1">
-                  <span className="font-display font-bold text-brand text-xs sm:text-sm uppercase tracking-wider">
-                    COMO FUNCIONA A PLATAFORMA
-                  </span>
-                  <span className="font-mono text-xs text-gray-400">3 pilares</span>
-                </div>
-
-                <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-[#E8E7E3]/80">
-                  <div className="w-9 h-9 rounded-lg bg-[#CEFFAD] text-green-900 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="font-display font-bold text-brand text-sm sm:text-base">
-                      1. Missões & Desafios Práticos
-                    </p>
-                    <p className="font-mono text-[11px] text-gray-600 uppercase tracking-wider">
-                      CONCLUA ATIVIDADES NO LABMAKER E GANHE XP
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-[#E8E7E3]/80">
-                  <div className="w-9 h-9 rounded-lg bg-[#FDBA5A]/60 text-amber-900 flex items-center justify-center shrink-0">
-                    <AlertCircle className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="font-display font-bold text-brand text-sm sm:text-base">
-                      2. Níveis & Progressão Individual
-                    </p>
-                    <p className="font-mono text-[11px] text-gray-600 uppercase tracking-wider">
-                      ACOMPANHE SUA EVOLUÇÃO NAS BANCADAS E PROJETOS
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-[#E8E7E3]/80">
-                  <div className="w-9 h-9 rounded-lg bg-gray-200 text-gray-700 flex items-center justify-center shrink-0">
-                    <Circle className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="font-display font-bold text-brand text-sm sm:text-base">
-                      3. Medalhas & Ranking do Campus
-                    </p>
-                    <p className="font-mono text-[11px] text-gray-600 uppercase tracking-wider">
-                      DESBLOQUEIE CONQUISTAS EXCLUSIVAS DO IFES SERRA
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Três destaques inferiores em fonte pixel */}
-              <div className="grid grid-cols-3 gap-3.5 mt-4">
-                <div className="bg-white rounded-2xl py-4 px-3 text-center border border-black/5">
-                  <p className="font-pixel text-brand text-lg sm:text-xl">XP</p>
-                  <p className="font-display font-semibold text-[10px] sm:text-xs text-gray-500 uppercase mt-1">
-                    PONTUAÇÃO
-                  </p>
-                </div>
-                <div className="bg-white rounded-2xl py-4 px-3 text-center border border-black/5">
-                  <p className="font-pixel text-accent text-lg sm:text-xl">LVL</p>
-                  <p className="font-display font-semibold text-[10px] sm:text-xs text-gray-500 uppercase mt-1">
-                    PROGRESSÃO
-                  </p>
-                </div>
-                <div className="bg-white rounded-2xl py-4 px-3 text-center border border-black/5">
-                  <p className="font-pixel text-gray-500 text-lg sm:text-xl">TOP</p>
-                  <p className="font-display font-semibold text-[10px] sm:text-xs text-gray-500 uppercase mt-1">
-                    RANKING
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>

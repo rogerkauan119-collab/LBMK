@@ -25,7 +25,25 @@ interface ToastMessage {
 interface AppContextValue {
   // Perfil e sessão
   user: User;
-  loginWithCredentials: (email: string, password: string) => Promise<boolean>;
+  isAuthenticated: boolean;
+  loginWithCredentials: (identifier: string, password: string) => Promise<{ ok: boolean; error?: string; user?: User }>;
+  registerAccount: (payload: {
+    user_type: 'ALUNO' | 'VISITANTE';
+    full_name: string;
+    matricula?: string;
+    course?: string;
+    email: string;
+    phone?: string;
+    document_id?: string;
+    organization?: string;
+    password: string;
+  }) => Promise<{ ok: boolean; error?: string; user?: User }>;
+  resetPassword: (payload: {
+    email: string;
+    matriculaOrPhone?: string;
+    newPassword: string;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  markAllNotificationsRead: () => Promise<void>;
   switchProfileQuick: (role: UserRole) => Promise<void>;
   logoutToVisitor: () => void;
 
@@ -44,7 +62,12 @@ interface AppContextValue {
   refreshData: () => Promise<void>;
 
   // Ações de negócio
-  registerCheckin: (payload: Omit<CheckinRecord, 'id' | 'created_at'>) => Promise<boolean>;
+  registerCheckin: (
+    payload: Omit<CheckinRecord, 'id' | 'created_at' | 'reason'> & {
+      reason?: string;
+      password?: string;
+    }
+  ) => Promise<boolean>;
   createTask: (payload: Partial<TaskItem>) => Promise<boolean>;
   updateTaskStatus: (id: number, status: TaskItem['status']) => Promise<void>;
   deleteTask: (id: number) => Promise<void>;
@@ -166,10 +189,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const json: BootstrapData = await res.json();
       setData(json);
 
-      // Sincroniza XP/nível do usuário logado se existir na lista
+      // Sincroniza XP/nível do usuário logado se existir na lista (sem derrubar a sessão autenticada)
       setUser((prev) => {
+        if (prev.role === 'VISITANTE') return prev;
         const match = json.users.find((u) => u.email.toLowerCase() === prev.email.toLowerCase());
-        return match ? { ...prev, ...match } : prev;
+        if (!match) return prev;
+        const safeRole: UserRole =
+          match.role === 'VISITANTE' ? 'ALUNO' : match.role;
+        return { ...prev, ...match, role: safeRole };
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro de conexão com o LabMaker API');
@@ -198,25 +225,117 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const playClick = () => soundFX.click(sfxEnabled);
   const playHover = () => soundFX.hover(sfxEnabled);
 
-  const loginWithCredentials = async (email: string, password: string): Promise<boolean> => {
+  const isAuthenticated = user.role !== 'VISITANTE';
+
+  const loginWithCredentials = async (
+    identifier: string,
+    password: string
+  ): Promise<{ ok: boolean; error?: string; user?: User }> => {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier, email: identifier, password }),
       });
       const json = await res.json();
       if (!res.ok) {
-        pushToast('ACESSO NEGADO', json.error || 'Credenciais inválidas.', 'error');
-        return false;
+        const errMsg = json.error || 'Credenciais inválidas.';
+        pushToast('ACESSO NEGADO', errMsg, 'error');
+        return { ok: false, error: errMsg };
       }
-      setUser(json.user);
-      pushToast('AUTENTICADO COM SUCESSO!', `Bem-vindo(a), ${json.user.name} [${json.user.role}]`, 'success');
+      const loggedUser: User = {
+        ...json.user,
+        role: json.user.role === 'VISITANTE' ? 'ALUNO' : json.user.role,
+      };
+      setUser(loggedUser);
+      localStorage.setItem('labmaker_user', JSON.stringify(loggedUser));
+      pushToast(
+        'LOGIN REALIZADO COM SUCESSO!',
+        `Bem-vindo(a), ${loggedUser.name}! Suas abas foram liberadas.`,
+        'success'
+      );
       await refreshData();
-      return true;
+      return { ok: true, user: loggedUser };
     } catch {
-      pushToast('ERRO DE REDE', 'Não foi possível conectar ao servidor de autenticação.', 'error');
-      return false;
+      const errMsg = 'Não foi possível conectar ao servidor de autenticação.';
+      pushToast('ERRO DE REDE', errMsg, 'error');
+      return { ok: false, error: errMsg };
+    }
+  };
+
+  const registerAccount = async (payload: {
+    user_type: 'ALUNO' | 'VISITANTE';
+    full_name: string;
+    matricula?: string;
+    course?: string;
+    email: string;
+    phone?: string;
+    document_id?: string;
+    organization?: string;
+    password: string;
+  }): Promise<{ ok: boolean; error?: string; user?: User }> => {
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        const errMsg = json.error || 'Não foi possível concluir o cadastro.';
+        pushToast('ATENÇÃO NO CADASTRO', errMsg, 'error');
+        return { ok: false, error: errMsg };
+      }
+      const createdUser: User = {
+        ...json.user,
+        role: json.user.role === 'VISITANTE' ? 'ALUNO' : json.user.role,
+      };
+      setUser(createdUser);
+      localStorage.setItem('labmaker_user', JSON.stringify(createdUser));
+      pushToast(
+        'CONTA CRIADA COM SUCESSO!',
+        `Bem-vindo(a), ${createdUser.name}! Você já está conectado.`,
+        'success'
+      );
+      await refreshData();
+      return { ok: true, user: createdUser };
+    } catch {
+      const errMsg = 'Falha de comunicação ao cadastrar conta.';
+      pushToast('ERRO DE REDE', errMsg, 'error');
+      return { ok: false, error: errMsg };
+    }
+  };
+
+  const resetPassword = async (payload: {
+    email: string;
+    matriculaOrPhone?: string;
+    newPassword: string;
+  }): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        const errMsg = json.error || 'Não foi possível redefinir a senha.';
+        pushToast('ERRO NA RECUPERAÇÃO', errMsg, 'error');
+        return { ok: false, error: errMsg };
+      }
+      pushToast('SENHA REDEFINIDA!', 'Sua senha foi atualizada. Faça login agora.', 'success');
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Erro de conexão com o servidor.' };
+    }
+  };
+
+  const markAllNotificationsRead = async () => {
+    try {
+      await fetch('/api/notifications/read-all', { method: 'POST' });
+      await refreshData();
+    } catch {
+      // ignora erro silencioso
     }
   };
 
@@ -248,7 +367,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     pushToast('MODO VISITANTE ATIVO', 'Você saiu da conta autenticada e está navegando como Visitante.', 'info');
   };
 
-  const registerCheckin = async (payload: Omit<CheckinRecord, 'id' | 'created_at'>): Promise<boolean> => {
+  const registerCheckin = async (
+    payload: Omit<CheckinRecord, 'id' | 'created_at' | 'reason'> & {
+      reason?: string;
+      password?: string;
+    }
+  ): Promise<boolean> => {
     try {
       const res = await fetch('/api/checkins', {
         method: 'POST',
@@ -572,7 +696,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <AppContext.Provider
       value={{
         user,
+        isAuthenticated,
         loginWithCredentials,
+        registerAccount,
+        resetPassword,
+        markAllNotificationsRead,
         switchProfileQuick,
         logoutToVisitor,
         sfxEnabled,

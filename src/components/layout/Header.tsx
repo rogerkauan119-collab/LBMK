@@ -26,6 +26,8 @@ import {
   Cpu,
   Building2,
   Kanban,
+  CheckCheck,
+  KeyRound,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -36,7 +38,7 @@ interface DropdownLink {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-// Dropdowns exclusivos do Público Externo (VISITANTE)
+// Abas herdadas (Público Geral & Público Interno)
 const INICIO_DROPDOWN: DropdownLink[] = [
   {
     label: 'Sobre',
@@ -79,7 +81,7 @@ const EQUIPAMENTOS_DROPDOWN: DropdownLink[] = [
   },
 ];
 
-// Dropdowns exclusivos do Aluno Logado
+// Abas exclusivas do Público Interno (Aluno Logado)
 const AGENDAR_DROPDOWN: DropdownLink[] = [
   {
     label: 'Agendar equipamento',
@@ -122,8 +124,10 @@ type MenuKey =
 export const Header: React.FC = () => {
   const {
     user,
+    isAuthenticated,
     data,
     logoutToVisitor,
+    markAllNotificationsRead,
     sfxEnabled,
     crtEnabled,
     toggleSfx,
@@ -139,7 +143,6 @@ export const Header: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
 
-  const isVisitor = user.role === 'VISITANTE';
   const isAdmin = user.role === 'ADMIN';
   const notifications = data?.notifications || [];
   const unreadCount = notifications.filter((n) => n.read === 0).length;
@@ -242,13 +245,13 @@ export const Header: React.FC = () => {
         ref={navRef}
         className="sticky top-0 z-50 w-full bg-brand border-b-[3px] border-accent shadow-[0_6px_20px_rgba(10,14,26,0.35)]"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-[72px] flex items-center justify-between gap-4">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-6 h-[72px] flex items-center justify-between gap-2 sm:gap-4">
           {/* 1. Esquerda: Logo LABMAKER · IFES CAMPUS SERRA */}
           <Link
             to="/"
             onClick={() => navigateToTarget('/')}
             onMouseEnter={playHover}
-            className="flex items-center gap-3 group focus:outline-none shrink-0"
+            className="flex items-center gap-2.5 group focus:outline-none shrink-0"
             aria-label="Ir para o início do LabMaker IFES Campus Serra"
           >
             <div className="w-10 h-10 rounded-xl bg-brand-dark border-2 border-accent/70 flex items-center justify-center shadow-neo-sm">
@@ -266,101 +269,105 @@ export const Header: React.FC = () => {
             </div>
           </Link>
 
-          {/* 2. Centro: Navbar condicional (Público Externo vs Aluno Logado) */}
-          <nav aria-label="Navegação principal" className="hidden lg:flex items-center gap-2">
-            {isVisitor ? (
-              <>
-                {/* PÚBLICO EXTERNO — ABA 1: INÍCIO */}
-                <div
-                  className="relative"
-                  onMouseEnter={() => {
-                    playHover();
-                    setOpenMenu('inicio');
-                  }}
-                  onMouseLeave={() => setOpenMenu((prev) => (prev === 'inicio' ? null : prev))}
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      playClick();
-                      setOpenMenu((prev) => (prev === 'inicio' ? null : 'inicio'));
-                    }}
-                    aria-expanded={openMenu === 'inicio'}
-                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-display font-bold text-xs uppercase tracking-wider transition-all border-2 ${
-                      location.pathname === '/'
-                        ? 'bg-accent text-surface-ink border-surface-ink shadow-[2px_3px_0px_#3A3A3A]'
-                        : 'bg-brand-dark/50 hover:bg-brand-dark text-white border-white/15'
-                    }`}
-                  >
-                    <Home className="w-4 h-4" />
-                    <span>Início</span>
-                    <ChevronDown
-                      className={`w-3.5 h-3.5 transition-transform ${
-                        openMenu === 'inicio' ? 'rotate-180' : ''
-                      }`}
-                    />
-                  </button>
-                  <AnimatePresence>
-                    {openMenu === 'inicio' && renderDropdownPanel(INICIO_DROPDOWN, 'w-72')}
-                  </AnimatePresence>
-                </div>
-
-                {/* PÚBLICO EXTERNO — ABA 2: EQUIPAMENTOS E SERVIÇOS */}
-                <div
-                  className="relative"
-                  onMouseEnter={() => {
-                    playHover();
-                    setOpenMenu('equipamentos');
-                  }}
-                  onMouseLeave={() =>
-                    setOpenMenu((prev) => (prev === 'equipamentos' ? null : prev))
-                  }
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      playClick();
-                      setOpenMenu((prev) => (prev === 'equipamentos' ? null : 'equipamentos'));
-                    }}
-                    aria-expanded={openMenu === 'equipamentos'}
-                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-display font-bold text-xs uppercase tracking-wider transition-all border-2 ${
-                      location.pathname.startsWith('/equipamentos')
-                        ? 'bg-accent text-surface-ink border-surface-ink shadow-[2px_3px_0px_#3A3A3A]'
-                        : 'bg-brand-dark/50 hover:bg-brand-dark text-white border-white/15'
-                    }`}
-                  >
-                    <Wrench className="w-4 h-4" />
-                    <span>Equipamentos e Serviços</span>
-                    <ChevronDown
-                      className={`w-3.5 h-3.5 transition-transform ${
-                        openMenu === 'equipamentos' ? 'rotate-180' : ''
-                      }`}
-                    />
-                  </button>
-                  <AnimatePresence>
-                    {openMenu === 'equipamentos' &&
-                      renderDropdownPanel(EQUIPAMENTOS_DROPDOWN, 'w-80')}
-                  </AnimatePresence>
-                </div>
-
-                {/* PÚBLICO EXTERNO — ABA 3: PROJETOS */}
-                <button
-                  type="button"
-                  onClick={() => navigateToTarget('/projetos')}
-                  onMouseEnter={playHover}
-                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-display font-bold text-xs uppercase tracking-wider transition-all border-2 ${
-                    location.pathname.startsWith('/projetos')
-                      ? 'bg-accent text-surface-ink border-surface-ink shadow-[2px_3px_0px_#3A3A3A]'
-                      : 'bg-brand-dark/50 hover:bg-brand-dark text-white border-white/15'
+          {/* 2. Centro: Navbar Desktop — Mantém as abas herdadas e, quando logado, exibe também todas as abas internas */}
+          <nav
+            aria-label="Navegação principal"
+            className="hidden xl:flex items-center gap-1.5"
+          >
+            {/* ABA HERDADA 1: INÍCIO (Sobre, Nossa Equipe, Perguntas Frequentes) */}
+            <div
+              className="relative"
+              onMouseEnter={() => {
+                playHover();
+                setOpenMenu('inicio');
+              }}
+              onMouseLeave={() => setOpenMenu((prev) => (prev === 'inicio' ? null : prev))}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setOpenMenu((prev) => (prev === 'inicio' ? null : 'inicio'));
+                }}
+                aria-expanded={openMenu === 'inicio'}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl font-display font-bold text-[11px] uppercase tracking-wider transition-all border-2 ${
+                  location.pathname === '/'
+                    ? 'bg-accent text-surface-ink border-surface-ink shadow-[2px_3px_0px_#3A3A3A]'
+                    : 'bg-brand-dark/50 hover:bg-brand-dark text-white border-white/15'
+                }`}
+              >
+                <Home className="w-3.5 h-3.5" />
+                <span>Início</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${
+                    openMenu === 'inicio' ? 'rotate-180' : ''
                   }`}
-                >
-                  <Briefcase className="w-4 h-4" />
-                  <span>Projetos</span>
-                </button>
-              </>
-            ) : (
+                />
+              </button>
+              <AnimatePresence>
+                {openMenu === 'inicio' && renderDropdownPanel(INICIO_DROPDOWN, 'w-72')}
+              </AnimatePresence>
+            </div>
+
+            {/* ABA HERDADA 2: EQUIPAMENTOS E SERVIÇOS */}
+            <div
+              className="relative"
+              onMouseEnter={() => {
+                playHover();
+                setOpenMenu('equipamentos');
+              }}
+              onMouseLeave={() =>
+                setOpenMenu((prev) => (prev === 'equipamentos' ? null : prev))
+              }
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setOpenMenu((prev) => (prev === 'equipamentos' ? null : 'equipamentos'));
+                }}
+                aria-expanded={openMenu === 'equipamentos'}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl font-display font-bold text-[11px] uppercase tracking-wider transition-all border-2 ${
+                  location.pathname.startsWith('/equipamentos')
+                    ? 'bg-accent text-surface-ink border-surface-ink shadow-[2px_3px_0px_#3A3A3A]'
+                    : 'bg-brand-dark/50 hover:bg-brand-dark text-white border-white/15'
+                }`}
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                <span>Equipamentos e Serviços</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${
+                    openMenu === 'equipamentos' ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+              <AnimatePresence>
+                {openMenu === 'equipamentos' &&
+                  renderDropdownPanel(EQUIPAMENTOS_DROPDOWN, 'w-80')}
+              </AnimatePresence>
+            </div>
+
+            {/* ABA HERDADA 3: PROJETOS */}
+            <button
+              type="button"
+              onClick={() => navigateToTarget('/projetos')}
+              onMouseEnter={playHover}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl font-display font-bold text-[11px] uppercase tracking-wider transition-all border-2 ${
+                location.pathname.startsWith('/projetos')
+                  ? 'bg-accent text-surface-ink border-surface-ink shadow-[2px_3px_0px_#3A3A3A]'
+                  : 'bg-brand-dark/50 hover:bg-brand-dark text-white border-white/15'
+              }`}
+            >
+              <Briefcase className="w-3.5 h-3.5" />
+              <span>Projetos</span>
+            </button>
+
+            {/* ABAS EXCLUSIVAS DO PÚBLICO INTERNO (Mantidas em todas as telas após o login) */}
+            {isAuthenticated && (
               <>
-                {/* ALUNO LOGADO — ABA 1: AGENDAR HORÁRIO */}
+                <div className="h-5 w-[1.5px] bg-white/25 mx-1" />
+
+                {/* ABA INTERNA 1: AGENDAR HORÁRIO */}
                 <div
                   className="relative"
                   onMouseEnter={() => {
@@ -376,14 +383,14 @@ export const Header: React.FC = () => {
                       setOpenMenu((prev) => (prev === 'agendar' ? null : 'agendar'));
                     }}
                     aria-expanded={openMenu === 'agendar'}
-                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-display font-bold text-xs uppercase tracking-wider transition-all border-2 ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl font-display font-bold text-[11px] uppercase tracking-wider transition-all border-2 ${
                       location.pathname.startsWith('/aluno') &&
                       location.search.includes('aba=agendar')
                         ? 'bg-accent text-surface-ink border-surface-ink shadow-[2px_3px_0px_#3A3A3A]'
-                        : 'bg-brand-dark/50 hover:bg-brand-dark text-white border-white/15'
+                        : 'bg-brand-dark/80 hover:bg-brand-dark text-lime border-lime/40'
                     }`}
                   >
-                    <Calendar className="w-4 h-4" />
+                    <Calendar className="w-3.5 h-3.5" />
                     <span>Agendar horário</span>
                     <ChevronDown
                       className={`w-3.5 h-3.5 transition-transform ${
@@ -396,7 +403,7 @@ export const Header: React.FC = () => {
                   </AnimatePresence>
                 </div>
 
-                {/* ALUNO LOGADO — ABA 2: EMPRÉSTIMO E RECURSOS */}
+                {/* ABA INTERNA 2: EMPRÉSTIMO E RECURSOS */}
                 <div
                   className="relative"
                   onMouseEnter={() => {
@@ -414,15 +421,15 @@ export const Header: React.FC = () => {
                       setOpenMenu((prev) => (prev === 'emprestimos' ? null : 'emprestimos'));
                     }}
                     aria-expanded={openMenu === 'emprestimos'}
-                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-display font-bold text-xs uppercase tracking-wider transition-all border-2 ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl font-display font-bold text-[11px] uppercase tracking-wider transition-all border-2 ${
                       location.pathname.startsWith('/aluno') &&
                       (location.search.includes('aba=emprestimos') ||
                         location.search.includes('aba=reposicao'))
                         ? 'bg-accent text-surface-ink border-surface-ink shadow-[2px_3px_0px_#3A3A3A]'
-                        : 'bg-brand-dark/50 hover:bg-brand-dark text-white border-white/15'
+                        : 'bg-brand-dark/80 hover:bg-brand-dark text-lime border-lime/40'
                     }`}
                   >
-                    <Package className="w-4 h-4" />
+                    <Package className="w-3.5 h-3.5" />
                     <span>Empréstimo e Recursos</span>
                     <ChevronDown
                       className={`w-3.5 h-3.5 transition-transform ${
@@ -436,18 +443,18 @@ export const Header: React.FC = () => {
                   </AnimatePresence>
                 </div>
 
-                {/* ALUNO LOGADO — ABA 3: MAKERLAB (Sistema de Progressão) */}
+                {/* ABA INTERNA 3: MAKERLAB (Sistema de Progressão) */}
                 <button
                   type="button"
                   onClick={() => navigateToTarget('/quest')}
                   onMouseEnter={playHover}
-                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-display font-bold text-xs uppercase tracking-wider transition-all border-2 ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl font-display font-bold text-[11px] uppercase tracking-wider transition-all border-2 ${
                     location.pathname.startsWith('/quest')
                       ? 'bg-accent text-surface-ink border-surface-ink shadow-[2px_3px_0px_#3A3A3A]'
-                      : 'bg-brand-dark/50 hover:bg-brand-dark text-white border-white/15'
+                      : 'bg-brand-dark/80 hover:bg-brand-dark text-accent border-accent/40'
                   }`}
                 >
-                  <Trophy className="w-4 h-4 text-accent" />
+                  <Trophy className="w-3.5 h-3.5 text-accent" />
                   <span>MakerLab</span>
                 </button>
 
@@ -455,13 +462,13 @@ export const Header: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => navigateToTarget('/admin')}
-                    className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-display font-bold text-xs uppercase border-2 transition-all ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl font-display font-bold text-[11px] uppercase border-2 transition-all ${
                       location.pathname.startsWith('/admin')
                         ? 'bg-lime text-surface-ink border-surface-ink shadow-neo-sm'
                         : 'bg-arcade-bg text-arcade-cyan border-arcade-cyan/60'
                     }`}
                   >
-                    <ShieldAlert className="w-4 h-4" />
+                    <ShieldAlert className="w-3.5 h-3.5" />
                     <span>Admin</span>
                   </button>
                 )}
@@ -469,9 +476,9 @@ export const Header: React.FC = () => {
             )}
           </nav>
 
-          {/* 3. Direita: Para Visitante = Selo + Entrar | Para Aluno Logado = Sino de Notificações + Ícone de Perfil (com Sair) */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            {isVisitor ? (
+          {/* 3. Direita: Visitante = Entrar/Cadastrar | Logado = Sino de Notificações + Ícone de Perfil com Sair */}
+          <div className="flex items-center gap-2 shrink-0">
+            {!isAuthenticated ? (
               <>
                 <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-lime text-surface-ink border-2 border-surface-ink shadow-[2px_3px_0px_#3A3A3A] font-display font-bold text-[11px] uppercase tracking-wider">
                   <UserIcon className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -483,12 +490,12 @@ export const Header: React.FC = () => {
                   onMouseEnter={playHover}
                   className="px-3.5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-surface-ink border-2 border-surface-ink shadow-[2px_3px_0px_#3A3A3A] font-display font-bold text-[11px] uppercase tracking-wider active:translate-y-0.5 transition-all"
                 >
-                  ENTRAR / IFES
+                  ENTRAR / CADASTRAR
                 </button>
               </>
             ) : (
               <>
-                {/* Sino de Notificações (somente aluno logado) */}
+                {/* Sino de Notificações */}
                 <div className="relative">
                   <button
                     type="button"
@@ -520,11 +527,21 @@ export const Header: React.FC = () => {
                         <div className="bg-white rounded-2xl border-2 border-surface-ink shadow-neo-lg overflow-hidden">
                           <div className="bg-brand px-4 py-3 border-b-2 border-accent flex items-center justify-between">
                             <span className="font-display font-bold text-white text-xs uppercase tracking-wider flex items-center gap-2">
-                              <Bell className="w-4 h-4 text-accent" /> Notificações ({notifications.length})
+                              <Bell className="w-4 h-4 text-accent" /> Notificações (
+                              {notifications.length})
                             </span>
-                            <span className="px-2 py-0.5 rounded bg-lime text-surface-ink font-pixel text-[7px]">
-                              {unreadCount} NOVAS
-                            </span>
+                            {unreadCount > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  playClick();
+                                  markAllNotificationsRead();
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-lime text-surface-ink font-display font-bold text-[10px] uppercase hover:brightness-105"
+                              >
+                                <CheckCheck className="w-3 h-3" /> Marcar lidas
+                              </button>
+                            )}
                           </div>
                           <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 p-2 space-y-1">
                             {notifications.length === 0 ? (
@@ -544,7 +561,9 @@ export const Header: React.FC = () => {
                                       [{n.type}]
                                     </span>
                                     {n.read === 0 && (
-                                      <span className="w-2 h-2 rounded-full bg-brand" />
+                                      <span className="px-1.5 py-0.5 rounded bg-brand text-white font-pixel text-[6px]">
+                                        NOVA
+                                      </span>
                                     )}
                                   </div>
                                   <p className="font-display font-bold text-xs text-surface-ink mt-1">
@@ -600,21 +619,27 @@ export const Header: React.FC = () => {
                             <p className="font-display font-bold text-sm uppercase truncate">
                               {user.name}
                             </p>
-                            <p className="text-[11px] text-brand-light truncate">
-                              {user.course || 'IFES Campus Serra'}
-                            </p>
+                            <p className="text-[11px] text-brand-light truncate">{user.email}</p>
                             <p className="font-pixel text-[8px] text-lime mt-1">
-                              LVL {user.level} · {user.xp} XP
+                              {user.course || 'IFES Campus Serra'}
                             </p>
                           </div>
 
                           <div className="p-2 space-y-1">
                             <button
                               type="button"
-                              onClick={() => navigateToTarget('/aluno?aba=tarefas')}
+                              onClick={() => navigateToTarget('/aluno?aba=resumo')}
                               className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#F6F5F2] text-xs font-display font-bold uppercase text-brand flex items-center gap-2"
                             >
-                              <Kanban className="w-4 h-4" /> Meu Painel / Tarefas
+                              <Kanban className="w-4 h-4" /> Painel do Aluno
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => navigateToTarget('/acesso')}
+                              className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#F6F5F2] text-xs font-display font-bold uppercase text-brand flex items-center gap-2"
+                            >
+                              <KeyRound className="w-4 h-4" /> Minha Conta / Senha
                             </button>
 
                             <button
@@ -640,74 +665,74 @@ export const Header: React.FC = () => {
                 setMobileOpen((prev) => !prev);
               }}
               aria-label="Abrir menu de navegação"
-              className="lg:hidden p-2 rounded-lg bg-brand-dark text-white border border-accent"
+              className="xl:hidden p-2 rounded-lg bg-brand-dark text-white border border-accent"
             >
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
 
-        {/* Menu Mobile Expansível */}
+        {/* Menu Mobile / Tablet Expansível */}
         <AnimatePresence>
           {mobileOpen && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="lg:hidden bg-brand-dark border-t-2 border-accent overflow-hidden"
+              className="xl:hidden bg-brand-dark border-t-2 border-accent overflow-hidden"
             >
-              <div className="px-4 py-4 space-y-4">
-                {isVisitor ? (
-                  <>
-                    <div className="space-y-1.5">
-                      <p className="font-display font-bold text-xs uppercase text-accent">Início</p>
-                      <div className="grid grid-cols-1 gap-1 pl-2 border-l-2 border-accent/50">
-                        {INICIO_DROPDOWN.map((item) => (
-                          <button
-                            key={item.to}
-                            type="button"
-                            onClick={() => navigateToTarget(item.to)}
-                            className="text-left py-1.5 px-2 rounded text-sm font-semibold text-white hover:bg-white/10"
-                          >
-                            {item.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+              <div className="px-4 py-4 space-y-4 max-h-[80vh] overflow-y-auto">
+                {/* Abas Herdadas (Sempre visíveis) */}
+                <div className="space-y-1.5">
+                  <p className="font-display font-bold text-xs uppercase text-accent">Início</p>
+                  <div className="grid grid-cols-1 gap-1 pl-2 border-l-2 border-accent/50">
+                    {INICIO_DROPDOWN.map((item) => (
+                      <button
+                        key={item.to}
+                        type="button"
+                        onClick={() => navigateToTarget(item.to)}
+                        className="text-left py-1.5 px-2 rounded text-sm font-semibold text-white hover:bg-white/10"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                    <div className="space-y-1.5">
-                      <p className="font-display font-bold text-xs uppercase text-accent">
-                        Equipamentos e Serviços
-                      </p>
-                      <div className="grid grid-cols-1 gap-1 pl-2 border-l-2 border-accent/50">
-                        {EQUIPAMENTOS_DROPDOWN.map((item) => (
-                          <button
-                            key={item.to}
-                            type="button"
-                            onClick={() => navigateToTarget(item.to)}
-                            className="text-left py-1.5 px-2 rounded text-sm font-semibold text-white hover:bg-white/10"
-                          >
-                            {item.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                <div className="space-y-1.5">
+                  <p className="font-display font-bold text-xs uppercase text-accent">
+                    Equipamentos e Serviços
+                  </p>
+                  <div className="grid grid-cols-1 gap-1 pl-2 border-l-2 border-accent/50">
+                    {EQUIPAMENTOS_DROPDOWN.map((item) => (
+                      <button
+                        key={item.to}
+                        type="button"
+                        onClick={() => navigateToTarget(item.to)}
+                        className="text-left py-1.5 px-2 rounded text-sm font-semibold text-white hover:bg-white/10"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                    <button
-                      type="button"
-                      onClick={() => navigateToTarget('/projetos')}
-                      className="w-full text-left py-2.5 px-3 rounded-xl bg-white/10 font-display font-bold text-xs uppercase text-white"
-                    >
-                      Projetos (Imagens e Arquivos)
-                    </button>
-                  </>
-                ) : (
+                <button
+                  type="button"
+                  onClick={() => navigateToTarget('/projetos')}
+                  className="w-full text-left py-2.5 px-3 rounded-xl bg-white/10 font-display font-bold text-xs uppercase text-white"
+                >
+                  Projetos (Imagens e Arquivos)
+                </button>
+
+                {/* Abas Internas quando Logado */}
+                {isAuthenticated && (
                   <>
-                    <div className="space-y-1.5">
-                      <p className="font-display font-bold text-xs uppercase text-accent">
+                    <div className="pt-2 border-t border-white/15 space-y-1.5">
+                      <p className="font-display font-bold text-xs uppercase text-lime">
                         Agendar horário
                       </p>
-                      <div className="grid grid-cols-1 gap-1 pl-2 border-l-2 border-accent/50">
+                      <div className="grid grid-cols-1 gap-1 pl-2 border-l-2 border-lime/50">
                         {AGENDAR_DROPDOWN.map((item) => (
                           <button
                             key={item.to}
@@ -722,10 +747,10 @@ export const Header: React.FC = () => {
                     </div>
 
                     <div className="space-y-1.5">
-                      <p className="font-display font-bold text-xs uppercase text-accent">
+                      <p className="font-display font-bold text-xs uppercase text-lime">
                         Empréstimo e Recursos
                       </p>
-                      <div className="grid grid-cols-1 gap-1 pl-2 border-l-2 border-accent/50">
+                      <div className="grid grid-cols-1 gap-1 pl-2 border-l-2 border-lime/50">
                         {EMPRESTIMO_DROPDOWN.map((item) => (
                           <button
                             key={item.to}

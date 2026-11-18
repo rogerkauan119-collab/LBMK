@@ -211,23 +211,22 @@ export const StudentDashboard: React.FC = () => {
             </p>
           </div>
 
-          {/* Card de XP & Nível integrado ao MakerLab Quest */}
-          <div className="bg-arcade-bg border-2 border-accent rounded-2xl p-4 sm:px-6 flex items-center gap-5 shadow-neo">
+          {/* Atalho direto para a aba dedicada do MakerLab Quest */}
+          <div className="bg-arcade-bg border-2 border-accent rounded-2xl p-4 sm:px-6 flex items-center gap-4 shadow-neo">
             <div>
-              <p className="font-pixel text-[8px] text-arcade-cyan uppercase">NÍVEL MAKER</p>
-              <p className="font-pixel text-xl text-accent mt-1">LVL {user.level}</p>
-            </div>
-            <div className="h-10 w-[2px] bg-white/15" />
-            <div>
-              <p className="font-pixel text-[8px] text-lime uppercase">EXPERIÊNCIA ACUMULADA</p>
-              <p className="font-pixel text-xl text-white mt-1">{user.xp} XP</p>
+              <p className="font-pixel text-[8px] text-arcade-cyan uppercase">
+                PORTAL DE ATIVIDADES
+              </p>
+              <p className="font-display font-bold text-base text-white mt-0.5">
+                MAKERLAB QUEST
+              </p>
             </div>
             <Link
               to="/quest"
               onClick={playClick}
-              className="px-3.5 py-2 rounded-xl bg-accent hover:bg-accent-hover text-surface-ink font-pixel text-[8px] uppercase flex items-center gap-1.5"
+              className="px-4 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-surface-ink font-display font-bold text-xs uppercase flex items-center gap-1.5"
             >
-              <Trophy className="w-3.5 h-3.5" /> QUEST
+              <Trophy className="w-4 h-4" /> VER PORTAL
             </Link>
           </div>
         </div>

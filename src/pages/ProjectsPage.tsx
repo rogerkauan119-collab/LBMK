@@ -6,6 +6,7 @@ import {
   Layers,
   CheckCircle2,
   Clock,
+  ArrowUpRight,
   PlusCircle,
   FileText,
   Download,
@@ -16,7 +17,7 @@ import { useApp } from '../context/AppContext';
 import { ProjectFile } from '../types';
 
 export const ProjectsPage: React.FC = () => {
-  const { data, user, saveProject, playClick } = useApp();
+  const { data, user, saveProject, playClick, pushToast } = useApp();
   const navigate = useNavigate();
 
   const [categoryFilter, setCategoryFilter] = useState<string>('TODOS');
@@ -30,7 +31,6 @@ export const ProjectsPage: React.FC = () => {
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [attachedFiles, setAttachedFiles] = useState<ProjectFile[]>([]);
-  const { pushToast } = useApp();
 
   const projects = (data?.projects || []).filter((p) => p.approved === 1 || user.role === 'ADMIN');
   const tutorials = data?.tutorials || [];

@@ -99,14 +99,14 @@ app.get('/api/bootstrap', (_req, res) => {
   });
 });
 
-// 2. Autenticação por perfil ou credenciais
+// 2. Autenticação completa (Login por E-mail ou Matrícula, Cadastro de Conta e Redefinição de Senha)
 app.post('/api/auth/login', (req, res) => {
-  const { email, password, quickRole } = req.body;
+  const { email, identifier, password, quickRole } = req.body;
 
   if (quickRole) {
     const userRow = db
       .prepare('SELECT id, name, role, email, matricula, course, phone, xp, level, badges_json FROM users WHERE role = ? LIMIT 1')
-      .get(quickRole) as Record<string, unknown> | undefined;
+      .get(String(quickRole)) as Record<string, unknown> | undefined;
 
     if (!userRow) {
       res.status(404).json({ error: 'Perfil não encontrado.' });
@@ -122,13 +122,34 @@ app.post('/api/auth/login', (req, res) => {
     return;
   }
 
-  const userRow = db
-    .prepare('SELECT id, name, role, email, password, matricula, course, phone, xp, level, badges_json FROM users WHERE LOWER(email) = LOWER(?)')
-    .get(String(email || '').trim()) as Record<string, unknown> | undefined;
+  const loginId = String(identifier || email || '').trim();
+  const loginPass = String(password || '');
 
-  if (!userRow || userRow.password !== password) {
-    res.status(401).json({ error: 'E-mail ou senha inválidos. Verifique as contas de teste!' });
+  if (!loginId || !loginPass) {
+    res.status(400).json({ error: 'Informe seu e-mail (ou matrícula) e sua senha.' });
     return;
+  }
+
+  const userRow = db
+    .prepare(
+      `SELECT id, name, role, email, password, matricula, course, phone, xp, level, badges_json
+       FROM users
+       WHERE LOWER(email) = LOWER(?) OR (matricula IS NOT NULL AND matricula != '' AND LOWER(matricula) = LOWER(?))
+       LIMIT 1`
+    )
+    .get(loginId, loginId) as Record<string, unknown> | undefined;
+
+  if (!userRow || String(userRow.password) !== loginPass) {
+    res.status(401).json({
+      error: 'E-mail/matrícula ou senha incorretos. Verifique seus dados ou crie uma conta.',
+    });
+    return;
+  }
+
+  // Se a conta no banco era VISITANTE mas fez login com senha, garante papel ALUNO para liberar as abas internas
+  if (userRow.role === 'VISITANTE') {
+    db.prepare("UPDATE users SET role = 'ALUNO' WHERE id = ?").run(Number(userRow.id));
+    userRow.role = 'ALUNO';
   }
 
   delete userRow.password;
@@ -140,7 +161,167 @@ app.post('/api/auth/login', (req, res) => {
   });
 });
 
-// 3. Check-in ("ACESSO AO LABORATÓRIO") — Registra acesso e autentica Aluno ou Visitante
+// Cadastro completo de nova conta
+app.post('/api/auth/register', (req, res) => {
+  const {
+    user_type,
+    full_name,
+    matricula,
+    course,
+    email,
+    phone,
+    document_id,
+    organization,
+    password,
+  } = req.body;
+
+  const cleanName = String(full_name || '').trim();
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  const cleanPassword = String(password || '').trim();
+  const cleanMatricula = String(matricula || document_id || '').trim();
+
+  if (!cleanName || !cleanEmail || !cleanPassword) {
+    res.status(400).json({ error: 'Nome completo, e-mail e senha são obrigatórios.' });
+    return;
+  }
+
+  if (cleanPassword.length < 4) {
+    res.status(400).json({ error: 'A senha deve ter pelo menos 4 caracteres.' });
+    return;
+  }
+
+  const existingEmail = db
+    .prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)')
+    .get(cleanEmail) as { id: number } | undefined;
+
+  if (existingEmail) {
+    res.status(409).json({
+      error: 'Este e-mail já está cadastrado. Use a aba "Entrar" ou recupere sua senha.',
+    });
+    return;
+  }
+
+  if (cleanMatricula) {
+    const existingMat = db
+      .prepare("SELECT id FROM users WHERE matricula != '' AND LOWER(matricula) = LOWER(?)")
+      .get(cleanMatricula) as { id: number } | undefined;
+    if (existingMat) {
+      res.status(409).json({
+        error: 'Esta matrícula/documento já possui cadastro. Faça login na aba "Entrar".',
+      });
+      return;
+    }
+  }
+
+  // Todo usuário que cria conta recebe role ALUNO para ter acesso completo às abas internas logadas
+  const assignedRole = 'ALUNO';
+  const normalizedCheckinType = user_type === 'VISITANTE' ? 'VISITANTE' : 'ALUNO';
+  const finalCourse =
+    course || (normalizedCheckinType === 'VISITANTE' ? organization || 'Comunidade Externa' : 'IFES Campus Serra');
+
+  const insertU = db
+    .prepare(`
+      INSERT INTO users (name, role, email, password, matricula, course, phone, xp, level, badges_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+    .run(
+      cleanName,
+      assignedRole,
+      cleanEmail,
+      cleanPassword,
+      cleanMatricula,
+      finalCourse,
+      String(phone || '').trim(),
+      300,
+      2,
+      JSON.stringify(['Conta Verificada', 'Novo Maker'])
+    );
+
+  // Registra também no histórico de check-ins
+  db.prepare(`
+    INSERT INTO checkins (user_type, full_name, matricula, course, email, phone, document_id, organization, reason)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    normalizedCheckinType,
+    cleanName,
+    cleanMatricula,
+    finalCourse,
+    cleanEmail,
+    String(phone || '').trim(),
+    String(document_id || ''),
+    organization || 'IFES Campus Serra',
+    'Cadastro de nova conta na plataforma'
+  );
+
+  db.prepare(`
+    INSERT INTO activity_logs (user_name, action, detail, category)
+    VALUES (?, ?, ?, ?)
+  `).run(cleanName, 'NOVA CONTA CADASTRADA', `Cadastro concluído (${finalCourse})`, 'CHECKIN');
+
+  const userRow = db
+    .prepare('SELECT id, name, role, email, matricula, course, phone, xp, level, badges_json FROM users WHERE id = ?')
+    .get(insertU.lastInsertRowid) as Record<string, unknown>;
+
+  res.status(201).json({
+    user: {
+      ...userRow,
+      badges: JSON.parse(String(userRow.badges_json || '[]')),
+    },
+  });
+});
+
+// Recuperação / Redefinição de senha
+app.post('/api/auth/reset-password', (req, res) => {
+  const { email, matriculaOrPhone, newPassword } = req.body;
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  const cleanConfirm = String(matriculaOrPhone || '').trim().toLowerCase();
+  const cleanNewPass = String(newPassword || '').trim();
+
+  if (!cleanEmail || !cleanNewPass) {
+    res.status(400).json({ error: 'Informe o e-mail cadastrado e a nova senha.' });
+    return;
+  }
+
+  if (cleanNewPass.length < 4) {
+    res.status(400).json({ error: 'A nova senha deve ter pelo menos 4 caracteres.' });
+    return;
+  }
+
+  const userRow = db
+    .prepare('SELECT id, name, email, matricula, phone FROM users WHERE LOWER(email) = LOWER(?)')
+    .get(cleanEmail) as Record<string, unknown> | undefined;
+
+  if (!userRow) {
+    res.status(404).json({ error: 'Nenhuma conta encontrada com este endereço de e-mail.' });
+    return;
+  }
+
+  if (cleanConfirm) {
+    const dbMat = String(userRow.matricula || '').trim().toLowerCase();
+    const dbPhone = String(userRow.phone || '').replace(/\D/g, '');
+    const inputPhone = cleanConfirm.replace(/\D/g, '');
+    const matchesMat = dbMat && dbMat === cleanConfirm;
+    const matchesPhone = dbPhone && inputPhone && dbPhone.endsWith(inputPhone);
+    if (dbMat && !matchesMat && !matchesPhone) {
+      res.status(403).json({
+        error: 'Matrícula ou telefone de confirmação não confere com o cadastro.',
+      });
+      return;
+    }
+  }
+
+  db.prepare('UPDATE users SET password = ? WHERE id = ?').run(cleanNewPass, Number(userRow.id));
+
+  res.json({ ok: true, message: 'Senha redefinida com sucesso! Você já pode fazer login.' });
+});
+
+// Marcar todas as notificações como lidas
+app.post('/api/notifications/read-all', (_req, res) => {
+  db.prepare('UPDATE notifications SET read = 1').run();
+  res.json({ ok: true });
+});
+
+// 3. Check-in / Cadastro de Conta ("ACESSO AO LABORATÓRIO") — Registra acesso e autentica Aluno ou Visitante
 app.post('/api/checkins', (req, res) => {
   const {
     user_type,
@@ -152,14 +333,17 @@ app.post('/api/checkins', (req, res) => {
     document_id,
     organization,
     reason,
+    password,
   } = req.body;
 
-  if (!full_name || !email || !reason) {
-    res.status(400).json({ error: 'Preencha nome completo, e-mail e motivo do uso.' });
+  if (!full_name || !email) {
+    res.status(400).json({ error: 'Preencha nome completo e e-mail.' });
     return;
   }
 
   const normalizedType = user_type === 'VISITANTE' ? 'VISITANTE' : 'ALUNO';
+  const finalReason = (reason && String(reason).trim()) || 'Cadastro e acesso via plataforma';
+  const finalPassword = (password && String(password).trim()) || '123456';
 
   const result = db
     .prepare(`
@@ -175,14 +359,14 @@ app.post('/api/checkins', (req, res) => {
       phone || '',
       document_id || '',
       organization || (normalizedType === 'ALUNO' ? 'IFES Campus Serra' : 'Comunidade Externa'),
-      reason.trim()
+      finalReason
     );
 
   // Registra no histórico de utilização
   db.prepare(`
     INSERT INTO activity_logs (user_name, action, detail, category)
     VALUES (?, ?, ?, ?)
-  `).run(full_name.trim(), 'CHECK-IN NO LABORATÓRIO', `${normalizedType}: ${reason.trim()}`, 'CHECKIN');
+  `).run(full_name.trim(), 'CADASTRO / ACESSO NO LABORATÓRIO', `${normalizedType}: ${finalReason}`, 'CHECKIN');
 
   // Verifica se já existe usuário com esse email, senão cria/atualiza para manter sessão viva
   let userRow = db
@@ -197,24 +381,41 @@ app.post('/api/checkins', (req, res) => {
       `)
       .run(
         full_name.trim(),
-        normalizedType,
+        'ALUNO',
         email.trim(),
-        '123456',
+        finalPassword,
         matricula || '',
         course || (normalizedType === 'VISITANTE' ? organization || 'Visitante Externo' : 'IFES Serra'),
         phone || '',
-        normalizedType === 'ALUNO' ? 300 : 100,
-        normalizedType === 'ALUNO' ? 2 : 1,
-        JSON.stringify(['Check-in Confirmado'])
+        300,
+        2,
+        JSON.stringify(['Conta Cadastrada'])
       );
     userRow = db
       .prepare('SELECT id, name, role, email, matricula, course, phone, xp, level, badges_json FROM users WHERE id = ?')
       .get(insertU.lastInsertRowid) as Record<string, unknown>;
   } else {
-    // Soma +50 XP pelo check-in presencial
+    // Atualiza senha/dados caso informados e garante papel autenticado (ALUNO ou ADMIN)
+    const nextRole = userRow.role === 'ADMIN' ? 'ADMIN' : 'ALUNO';
     const newXp = Number(userRow.xp || 0) + 50;
     const newLevel = Math.max(1, Math.floor(newXp / 300) + 1);
-    db.prepare('UPDATE users SET xp = ?, level = ? WHERE id = ?').run(newXp, newLevel, Number(userRow.id));
+    if (password && String(password).trim()) {
+      db.prepare('UPDATE users SET role = ?, password = ?, xp = ?, level = ? WHERE id = ?').run(
+        nextRole,
+        finalPassword,
+        newXp,
+        newLevel,
+        Number(userRow.id)
+      );
+    } else {
+      db.prepare('UPDATE users SET role = ?, xp = ?, level = ? WHERE id = ?').run(
+        nextRole,
+        newXp,
+        newLevel,
+        Number(userRow.id)
+      );
+    }
+    userRow.role = nextRole;
     userRow.xp = newXp;
     userRow.level = newLevel;
   }
@@ -445,9 +646,9 @@ app.patch('/api/inventory/:id', (req, res) => {
     return;
   }
   db.prepare('UPDATE inventory_items SET item_name = ?, quantity_total = ?, quantity_available = ? WHERE id = ?').run(
-    item_name ?? existing.item_name,
-    quantity_total !== undefined ? Number(quantity_total) : existing.quantity_total,
-    quantity_available !== undefined ? Number(quantity_available) : existing.quantity_available,
+    String(item_name ?? existing.item_name),
+    quantity_total !== undefined ? Number(quantity_total) : Number(existing.quantity_total),
+    quantity_available !== undefined ? Number(quantity_available) : Number(existing.quantity_available),
     Number(req.params.id)
   );
   const item = db.prepare('SELECT * FROM inventory_items WHERE id = ?').get(Number(req.params.id));
@@ -614,8 +815,8 @@ app.patch('/api/projects/:id', (req, res) => {
     return;
   }
   db.prepare('UPDATE projects SET approved = ?, status = ? WHERE id = ?').run(
-    approved !== undefined ? (approved ? 1 : 0) : existing.approved,
-    status ?? existing.status,
+    approved !== undefined ? (approved ? 1 : 0) : Number(existing.approved),
+    String(status ?? existing.status),
     Number(req.params.id)
   );
   const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(Number(req.params.id));
